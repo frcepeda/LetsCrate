@@ -67,8 +67,13 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '--id', 'Show file with ID' ) {
+        opts.on( '--id', 'Show files with IDs' ) {
             @options.action = :listFileID
+            @options.actionCounter += 1
+        }
+        
+        opts.on( '-n', '--new', 'Create new crates with names' ) {
+            @options.action = :createCrate
             @options.actionCounter += 1
         }
         
@@ -166,6 +171,20 @@ class LetsCrate
         processFileID
     end
     
+    def createCrate
+        for name in @arguments
+            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/add.json",
+                                                 :params => {
+                                                 :name => name
+                                                 },
+                                                 :username => @options.username,
+                                                 :password => @options.password,
+                                                 )
+        end
+        parseResponses
+        processCrateCreated
+    end
+    
     def parseResponses
         for response in @responses
             @resHashed << JSON.parse(response.body)
@@ -197,6 +216,7 @@ class LetsCrate
     end
     
     def processFileList
+        i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
                 puts "Error: #{hash['message']}     <#{@arguments[i]}>"
@@ -210,10 +230,12 @@ class LetsCrate
                     puts "\n"
                 end
             end
+            i += 1
         end
     end
     
     def processFileID
+        i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
                 puts "Error: #{hash['message']}     <#{@arguments[i]}>"
@@ -221,6 +243,19 @@ class LetsCrate
                 puts hash
                 puts "#{hash['item']['name']}\t\tURL: http://lts.cr/#{hash['item']['short_code']}\tID: #{hash['item']['id']}"
             end
+            i += 1
+        end
+    end
+    
+    def processCrateCreated
+        i = 0
+        for hash in @resHashed
+            if hash.values.include?("failure")
+                puts "Error: #{hash['message']}     <#{@arguments[i]}>" 
+            else
+                puts "Name: #{hash['crate']['name']}\t\tURL: http://lts.cr/#{hash['crate']['short_code']}\tID: #{hash['crate']['id']}" if hash.values.include?("success")
+            end
+            i += 1
         end
     end
 end
