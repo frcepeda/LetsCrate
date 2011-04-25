@@ -1,10 +1,10 @@
 #! /usr/bin/env ruby
 
-# LetsCrate CLI by Freddy Rom‡n
+# LetsCrate CLI by Freddy Roman
 
 # ------
 
-# Copyright (c) 2011 Freddy Rom‡n
+# Copyright (c) 2011 Freddy Roman
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,6 @@ require 'json'
 VERSION = "1.0"
 
 class App
-    
-    attr_reader :options
     
     def initialize(argList)
         @arguments = argList      # store arguments in local variable
