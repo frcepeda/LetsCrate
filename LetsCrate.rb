@@ -76,9 +76,6 @@ class App
     end
     
     def run
-        puts @options
-        puts @arguments.to_s
-        
         if @options.actionCounter != 1
         puts "More than one action was selected."
         exit 1
@@ -96,6 +93,8 @@ class LetsCrate
     def initialize(options, arguments)
         @options = options
         @arguments = arguments
+        @responses = []
+        @resHashed = []
     end
     
     def run
@@ -113,7 +112,7 @@ class LetsCrate
     
     def uploadFile
         for file in @arguments
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
+            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
                                           :params => {
                                             :file => File.open(file ,"r"),
                                             :crate_id => @options.crateID
@@ -122,14 +121,43 @@ class LetsCrate
                                           :password => @options.password,
                                           )
         end
+        parseResponses
+        processFilesUploaded
     end
     
     def deleteFile
-        # TO DO - Implement deletions
+        for fileID in @arguments
+            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/destroy/#{fileID}.json",
+                                                :username => @options.username,
+                                                :password => @options.password,
+                                                )
+        end
+        parseResponses
+        processFilesDeleted
     end
     
-    def parseResponse(response)
-        # TO DO - Implement
+    def parseResponses
+        for response in @responses
+        @resHashed << JSON.parse(response.body)
+        end
+    end
+    
+    def processFilesUploaded
+        i = 0
+        for hash in @resHashed
+            puts "Error: #{hash['message']} <#{@arguments[i]}>" if hash.values.include?("failure")
+            puts "URL: #{hash['file']['short_url']}, ID: #{hash['file']['id']}      <#{@arguments[i]}>" if hash.values.include?("success")
+            i += 1
+        end
+    end
+    
+    def processFilesDeleted
+        i = 0
+        for hash in @resHashed
+            puts "Error: #{hash['message']} <#{@arguments[i]}>" if hash.values.include?("failure")
+            puts "#{@arguments[i]} deleted" if hash.values.include?("success")
+            i += 1
+        end
     end
 end
 
