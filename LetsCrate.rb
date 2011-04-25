@@ -77,6 +77,11 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on( '--listcrates', 'List all crates' ) {
+            @options.action = :listCrates
+            @options.actionCounter += 1
+        }
+        
         opts.on( '--version', 'Output version' ) {
             puts "LetsCrate v#{VERSION} by Freddy Roman <frcepeda@gmail.com>"
             exit 0
@@ -185,6 +190,15 @@ class LetsCrate
         processCrateCreated
     end
     
+    def listCrates
+        @responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/list.json",
+                                             :username => @options.username,
+                                             :password => @options.password,
+                                             )
+        parseResponses
+        processCrateList
+    end
+    
     def parseResponses
         for response in @responses
             @resHashed << JSON.parse(response.body)
@@ -254,6 +268,21 @@ class LetsCrate
                 puts "Error: #{hash['message']}     <#{@arguments[i]}>" 
             else
                 puts "Name: #{hash['crate']['name']}\t\tURL: http://lts.cr/#{hash['crate']['short_code']}\tID: #{hash['crate']['id']}" if hash.values.include?("success")
+            end
+            i += 1
+        end
+    end
+    
+    def processCrateList
+        i = 0
+        for hash in @resHashed
+            if hash.values.include?("failure")
+                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+                else
+                crates = hash['crates']
+                for crate in crates
+                    puts "#{crate['name']} \t\tURL: http://lts.cr/#{crate['short_code']}\tID: #{crate['id']}"
+                end
             end
             i += 1
         end
