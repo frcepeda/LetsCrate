@@ -93,6 +93,11 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on( '-t', '--test', 'Only test the credentials' ) {
+            @options.action = :testCredentials
+            @options.actionCounter += 1
+        }
+        
         opts.on( '--version', 'Output version' ) {
             puts "LetsCrate v#{VERSION} by Freddy Roman <frcepeda@gmail.com>"
             exit 0
@@ -124,21 +129,24 @@ class LetsCrate
     def initialize(options, arguments)
         @options = options
         @arguments = arguments
-        @responses = []
-        @resHashed = []
+        @responses = []    # the responses in JSON format get stored here.
+        @resHashed = []    # the responses in native hash format go here.
     end
     
     def run
-        if testCredentials
-            self.send(@options.action)
-        else
-            puts "Invalid credentials. Please verify your username and password."
-        end
+        self.send(@options.action)
     end
     
+    # -----
+    
     def testCredentials
-        true
-        # TO DO - Actually implement this.
+        @responses << Typhoeus::Request.post("https://api.letscrate.com/1/users/authenticate.json",
+                                          :username => @options.username,
+                                          :password => @options.password,
+                                          )
+        
+        parseResponses
+        processCredentials
     end
     
     def uploadFile
@@ -235,9 +243,23 @@ class LetsCrate
         processCratesDeleted
     end
     
+    # ------
+    
     def parseResponses
         for response in @responses
             @resHashed << JSON.parse(response.body)
+        end
+    end
+    
+    # ------
+    
+    def processCredentials
+        for hash in @resHashed
+            if hash.values.include?("success")
+                puts "The credentials are valid"
+                else
+                puts "The credentials are invalid"
+            end
         end
     end
     
@@ -259,7 +281,7 @@ class LetsCrate
             if hash.values.include?("failure")
                 puts "Error: #{hash['message']}     <#{@arguments[i]}>"
             else
-                puts "#{@arguments[i]} deleted" if hash.values.include?("success")
+                puts "#{@arguments[i]} deleted"
             end
             i += 1
         end
@@ -317,7 +339,7 @@ class LetsCrate
         for hash in @resHashed
             if hash.values.include?("failure")
                 puts "Error: #{hash['message']}     <#{@arguments[i]}>"
-                else
+            else
                 crates = hash['crates']
                 for crate in crates
                     puts "#{crate['name']} \t\tURL: http://lts.cr/#{crate['short_code']}\tID: #{crate['id']}"
@@ -332,7 +354,7 @@ class LetsCrate
         for hash in @resHashed
             if hash.values.include?("failure")
                 puts "Error: #{hash['message']}     <#{@arguments[i]}>"
-                else
+            else
                 puts "renamed #{hash['crate']['id']} to #{hash['crate']['name']}" if hash.values.include?("success")
             end
             i += 1
@@ -344,7 +366,7 @@ class LetsCrate
         for hash in @resHashed
             if hash.values.include?("failure")
                 puts "Error: #{hash['message']}     <#{@arguments[i]}>"
-                else
+            else
                 puts "#{@arguments[i]} deleted" if hash.values.include?("success")
             end
             i += 1
