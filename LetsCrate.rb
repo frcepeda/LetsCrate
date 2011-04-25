@@ -82,6 +82,12 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on( '-r [ID]', '--rename [ID]', 'Rename crate to name' ) { |crateID|
+            @options.crateID = crateID
+            @options.action = :renameCrate
+            @options.actionCounter += 1
+        }
+        
         opts.on( '-D', '--deletecrate', 'Delete crates with IDs' ) {
             @options.action = :deleteCrate
             @options.actionCounter += 1
@@ -204,6 +210,24 @@ class LetsCrate
         processCrateList
     end
     
+    def renameCrate
+        for name in @arguments 
+            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
+                                                 :params => {
+                                                 :name => name
+                                                 },
+                                                 :username => @options.username,
+                                                 :password => @options.password,
+                                                 )
+            if @arguments.count < 1  # TO DO - Make this work with multiple crates.
+                puts "Currently, you can only rename one crate at a time."
+                break
+            end
+        end
+        parseResponses
+        processCrateRenamed
+    end
+    
     def deleteCrate
         for crateID in @arguments
             @responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/destroy/#{crateID}.json",
@@ -299,6 +323,18 @@ class LetsCrate
                 for crate in crates
                     puts "#{crate['name']} \t\tURL: http://lts.cr/#{crate['short_code']}\tID: #{crate['id']}"
                 end
+            end
+            i += 1
+        end
+    end
+    
+    def processCrateRenamed
+        i = 0
+        for hash in @resHashed
+            if hash.values.include?("failure")
+                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+                else
+                puts "renamed #{hash['crate']['id']} to #{hash['crate']['name']}" if hash.values.include?("success")
             end
             i += 1
         end
