@@ -6,7 +6,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "0.1b"
+VERSION = "1.0"
 
 class App
     
@@ -25,10 +25,10 @@ class App
         
         opts = OptionParser.new
         
-        opts.banner = "\nUsage: #{File.basename(__FILE__)} <-l username:password> <-u CrateID> file1 file2 ..."+"\n"+
-                        "   or: #{File.basename(__FILE__)} <-l username:password> -d fileID1 fileID2 ..."+"\n\n"
+        opts.banner = "Usage: #{File.basename(__FILE__)} <-l username:password> [options] file1 file2 ...\n"+ 
+                      "   or: #{File.basename(__FILE__)} <-l username:password> [options] id1 id2 ...\n"+"\n"
         
-        opts.on( '-l [username:password]', '--login [username:password]', 'Login with this username and password' ) { |login|
+        opts.on( '-l', '--login [username:password]', 'Login with this username and password' ) { |login|
             
             if login
                 credentials = login.split(/:/)   # makes a 2-item array from the input
@@ -46,7 +46,7 @@ class App
             end
         }
         
-        opts.on( '-u [ID]', '--upload [ID]', 'Upload files to crate with ID' ) { |upID|
+        opts.on( '-u', '--upload [Crate ID]', 'Upload files to crate with ID' ) { |upID|
             if upID      # TO DO - add verification via regex
                 @options.crateID = upID
                 @options.action = :uploadFile
@@ -77,12 +77,12 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '--listcrates', 'List all crates' ) {
+        opts.on( '-A', '--listcrates', 'List all crates' ) {
             @options.action = :listCrates
             @options.actionCounter += 1
         }
         
-        opts.on( '-r [ID]', '--rename [ID]', 'Rename crate to name' ) { |crateID|
+        opts.on( '-r', '--rename [Crate ID]', 'Rename crate to name' ) { |crateID|
             @options.crateID = crateID
             @options.action = :renameCrate
             @options.actionCounter += 1
@@ -219,10 +219,6 @@ class LetsCrate
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
-            if @arguments.count < 1  # TO DO - Make this work with multiple crates.
-                puts "Currently, you can only rename one crate at a time."
-                break
-            end
         end
         parseResponses
         processCrateRenamed
@@ -251,7 +247,7 @@ class LetsCrate
             if hash.values.include?("failure")
                 puts "Error: #{hash['message']}     <#{@arguments[i]}>" 
             else
-                puts "URL: #{hash['file']['short_url']}, ID: #{hash['file']['id']}      <#{@arguments[i]}>" if hash.values.include?("success")
+                puts "URL: #{hash['file']['short_url']}, ID: #{hash['file']['id']}      <#{File.basename(@arguments[i])}>" if hash.values.include?("success")
             end
             i += 1
         end
@@ -278,9 +274,13 @@ class LetsCrate
                 crates = hash['crates']
                 for crate in crates
                     puts "#{crate['name']} \t\tURL: http://lts.cr/#{crate['short_code']}\tID: #{crate['id']}"
-                    for file in crate['files']
-                        puts "* #{file['name']}\t\tURL: http://lts.cr/#{file['short_code']}\tID: #{file['id']}"
-                    end if crate['files'] # the last if is to avoid errors with empty crates
+                    if crate['files'] # test if crate is empty
+                        for file in crate['files']
+                            puts "* #{file['name']}\t\tURL: http://lts.cr/#{file['short_code']}\tID: #{file['id']}"
+                        end
+                    else
+                        puts "* Crate is empty."
+                    end
                     puts "\n"
                 end
             end
@@ -294,7 +294,6 @@ class LetsCrate
             if hash.values.include?("failure")
                 puts "Error: #{hash['message']}     <#{@arguments[i]}>"
             else
-                puts hash
                 puts "#{hash['item']['name']}\t\tURL: http://lts.cr/#{hash['item']['short_code']}\tID: #{hash['item']['id']}"
             end
             i += 1
