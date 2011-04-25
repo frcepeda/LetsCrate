@@ -170,24 +170,26 @@ class LetsCrate
     end
     
     def run
-        self.send(@options.action)
+        responses = self.send(@options.action)    # responses is aleady a parsed hash.
+        self.send("PRINT"+@options.action.to_s, responses)
     end
     
-    # -----
+    # -----   API documentation is at http://letscrate.com/api
     
     def testCredentials
-        @responses << Typhoeus::Request.post("https://api.letscrate.com/1/users/authenticate.json",
+        responses = []
+        responses << Typhoeus::Request.post("https://api.letscrate.com/1/users/authenticate.json",
                                           :username => @options.username,
                                           :password => @options.password,
                                           )
         
-        parseResponses
-        processCredentials
+        return parseResponses(responses)
     end
     
     def uploadFile
+        responses = []
         for file in @arguments
-            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
+            responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
                                           :params => {
                                             :file => File.open(file ,"r"),
                                             :crate_id => @options.crateID
@@ -196,44 +198,48 @@ class LetsCrate
                                           :password => @options.password,
                                           )
         end
-        parseResponses
-        processFilesUploaded
+        
+        return parseResponses(responses)
     end
     
     def deleteFile
+        responses = []
         for fileID in @arguments
-            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/destroy/#{fileID}.json",
+            responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/destroy/#{fileID}.json",
                                                 :username => @options.username,
                                                 :password => @options.password,
                                                 )
         end
-        parseResponses
-        processFilesDeleted
+       
+        return parseResponses(responses)
     end
     
     def listFiles
-        @responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/list.json",
+        responses = []
+        responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/list.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
-        parseResponses
-        processFileList
+        
+        return parseResponses(responses)
     end
     
     def listFileID
+        responses = []
         for fileID in @arguments
-            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/show/#{fileID}.json",
+            responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/show/#{fileID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
         end
-        parseResponses
-        processFileID
+        
+        return parseResponses(responses)
     end
     
     def createCrate
+        responses = []
         for name in @arguments
-            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/add.json",
+            responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/add.json",
                                                  :params => {
                                                  :name => name
                                                  },
@@ -241,22 +247,24 @@ class LetsCrate
                                                  :password => @options.password,
                                                  )
         end
-        parseResponses
-        processCrateCreated
+       
+        return parseResponses(responses)
     end
     
     def listCrates
-        @responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/list.json",
+        responses = []
+        responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/list.json",
                                              :username => @options.username,
                                              :password => @options.password,
                                              )
-        parseResponses
-        processCrateList
+        
+        return parseResponses(responses)
     end
     
     def renameCrate
+        responses = []
         for name in @arguments 
-            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
+            responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
                                                  :params => {
                                                  :name => name
                                                  },
@@ -264,33 +272,36 @@ class LetsCrate
                                                  :password => @options.password,
                                                  )
         end
-        parseResponses
-        processCrateRenamed
+        
+        return parseResponses(responses)
     end
     
     def deleteCrate
+        responses = []
         for crateID in @arguments
-            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/destroy/#{crateID}.json",
+            responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/destroy/#{crateID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
         end
-        parseResponses
-        processCratesDeleted
+      
+        return parseResponses(responses)
     end
     
     # ------
     
-    def parseResponses
-        for response in @responses
-            @resHashed << JSON.parse(response.body)
+    def parseResponses(responses)
+        resHashed = []
+        for response in responses
+            resHashed << JSON.parse(response.body)
         end
+        return resHashed
     end
     
     # ------
     
-    def processCredentials
-        for hash in @resHashed
+    def PRINTtestCredentials(resHashed)
+        for hash in resHashed
             if hash.values.include?("success")
                 puts "The credentials are valid"
                 else
@@ -299,22 +310,21 @@ class LetsCrate
         end
     end
     
-    def processFilesUploaded
+    def PRINTuploadFile(resHashed)
         i = 0
-        for hash in @resHashed
+        for hash in resHashed
             if hash.values.include?("failure")
                 printError(hash['message'], @arguments[i])
             else
-                puts hash
                 puts printInfo(File.basename(@arguments[i]), hash['file']['short_code'], hash['file']['id'])
             end
             i += 1
         end
     end
     
-    def processFilesDeleted
+    def PRINTdeleteFile(resHashed)
         i = 0
-        for hash in @resHashed
+        for hash in resHashed
             if hash.values.include?("failure")
                 printError(hash['message'], @arguments[i])
             else
@@ -324,9 +334,9 @@ class LetsCrate
         end
     end
     
-    def processFileList
+    def PRINTlistFiles(resHashed)
         i = 0
-        for hash in @resHashed
+        for hash in resHashed
             if hash.values.include?("failure")
                 printError(hash['message'], @arguments[i])
             else
@@ -347,9 +357,9 @@ class LetsCrate
         end
     end
     
-    def processFileID
+    def PRINTlistFileID(resHashed)
         i = 0
-        for hash in @resHashed
+        for hash in resHashed
             if hash.values.include?("failure")
                 printError(hash['message'], @arguments[i])
             else
@@ -359,9 +369,9 @@ class LetsCrate
         end
     end
     
-    def processCrateCreated
+    def PRINTcreateCrate(resHashed)
         i = 0
-        for hash in @resHashed
+        for hash in resHashed
             if hash.values.include?("failure")
                 printError(hash['message'], @arguments[i])
             else
@@ -371,9 +381,9 @@ class LetsCrate
         end
     end
     
-    def processCrateList
+    def PRINTlistCrates(resHashed)
         i = 0
-        for hash in @resHashed
+        for hash in resHashed
             if hash.values.include?("failure")
                 printError(hash['message'], @arguments[i])
             else
@@ -386,9 +396,9 @@ class LetsCrate
         end
     end
     
-    def processCrateRenamed
+    def PRINTrenameCrate(resHashed)
         i = 0
-        for hash in @resHashed
+        for hash in resHashed
             if hash.values.include?("failure")
                 printError(hash['message'], @arguments[i])
             else
@@ -398,9 +408,9 @@ class LetsCrate
         end
     end
     
-    def processCratesDeleted
+    def PRINTdeleteCrate(resHashed)
         i = 0
-        for hash in @resHashed
+        for hash in resHashed
             if hash.values.include?("failure")
                 printError(hash['message'], @arguments[i])
             else
