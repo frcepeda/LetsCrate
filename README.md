@@ -8,7 +8,7 @@ This is an unofficial command line client for [LetsCrate][] written in Ruby.
 Usage
 -----
 
-Usage: LetsCrate.rb <-l username:password> [options] file1 file2 ...
+```Usage: LetsCrate.rb <-l username:password> [options] file1 file2 ...
    or: LetsCrate.rb <-l username:password> [options] id1 id2 ...
 
     -l, --login [username:password]  Login with this username and password
@@ -23,7 +23,7 @@ Usage: LetsCrate.rb <-l username:password> [options] file1 file2 ...
     -t, --test                       Only test the credentials
     -q, --quiet                      Do not output anything to the terminal
     -v, --version                    Output version
-    -h, --help                       Display this screen
+    -h, --help                       Display this screen```
 
 An ID is a 5 digit identifier used internally by LetsCrate.
 To know the ID of your files, use the "-a" option to list them with their
