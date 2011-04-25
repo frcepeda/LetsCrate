@@ -30,16 +30,12 @@ class App
         
         opts.on( '-l', '--login [username:password]', 'Login with this username and password' ) { |login|
             
-            if login
-                credentials = login.split(/:/)   # makes a 2-item array from the input
-            else
-                puts "You need to supply a set of credentials to use the LetsCrate API"
-                exit 1
-            end
+            credentials = login.split(/:/)   # makes a 2-item array from the input
             
             if credentials.count == 2   # this array musn't have more than 2 items because it's username + password.
                 @options.username = credentials[0]
                 @options.password = credentials[1]
+                @options.login = 1
             else
                 puts "Credentials invalid, please input them in the format \"username:password\""
                 exit 1
@@ -109,14 +105,28 @@ class App
         }
         
         opts.parse!(@arguments)
-    end
-    
-    def run
-        if @options.actionCounter != 1
+        
+        # Errors:
+        
+        if @options.actionCounter > 1
             puts "More than one action was selected. Please select only one action."
             exit 1
         end
-            
+        
+        if (@options.username == nil || @options.password == nil) && @options.actionCounter != 0
+            puts "You need to supply a set of credentials to use the LetsCrate API."
+            puts opts
+            exit 1
+        end
+        
+        if @options.actionCounter == 0      # nothing was selected
+            puts opts
+            exit 0
+        end
+    end
+    
+    def run
+        
         crate = LetsCrate.new(@options, @arguments)
         crate.run
         
@@ -297,7 +307,7 @@ class LetsCrate
                 crates = hash['crates']
                 for crate in crates
                     puts printInfo(crate['name'], crate['short_code'], crate['id'])
-                    if crate['files'] # test if crate is empty
+                    if crate['files']      # test if crate is empty
                         for file in crate['files']
                             puts "* "+printInfo(file['name'], file['short_code'], file['id'])
                         end
