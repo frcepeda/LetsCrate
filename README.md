@@ -5,7 +5,7 @@ This is an unofficial command line client for [LetsCrate][] written in Ruby.
 
 [LetsCrate]: http://letscrate.com
 
-Licence
+License
 -------
 
 Copyright (C) 2011 by Freddy Román
