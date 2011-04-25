@@ -172,6 +172,9 @@ class LetsCrate
     end
     
     def run
+        @width = nil
+        @width = self.detect_terminal_size if self.detect_terminal_size != nil  # get terminal width
+        
         if @arguments.count > 0     # check if command requires extra arguments
             for argument in @arguments
                 response = self.send(@options.action, argument)    # response is aleady a parsed hash.
@@ -296,7 +299,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts printInfo(File.basename(@arguments[@argCounter]), hash['file']['short_code'], hash['file']['id'])
+            printInfo(File.basename(@arguments[@argCounter]), hash['file']['short_code'], hash['file']['id'])
         end
         @argCounter += 1
     end
@@ -316,10 +319,10 @@ class LetsCrate
         else
             crates = hash['crates']
             for crate in crates
-                puts printInfo(crate['name'], crate['short_code'], crate['id'])
+                printInfo(crate['name'], crate['short_code'], crate['id'])
                 if crate['files']      # test if crate is empty
                     for file in crate['files']
-                        puts "* "+printInfo(file['name'], file['short_code'], file['id'])
+                        printFile(file['name'], file['short_code'], file['id'])
                     end
                 else
                     puts "* Crate is empty."
@@ -334,7 +337,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts printInfo(hash['item']['name'], hash['item']['short_code'], hash['item']['id'])
+            printInfo(hash['item']['name'], hash['item']['short_code'], hash['item']['id'])
         end
         @argCounter += 1
     end
@@ -343,7 +346,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts printInfo(hash['crate']['name'], hash['crate']['short_code'], hash['crate']['id'])
+            printInfo(hash['crate']['name'], hash['crate']['short_code'], hash['crate']['id'])
         end
         @argCounter += 1
     end
@@ -354,7 +357,7 @@ class LetsCrate
         else
             crates = hash['crates']
             for crate in crates
-                puts printInfo(crate['name'], crate['short_code'], crate['id'])
+                printInfo(crate['name'], crate['short_code'], crate['id'])
             end
         end
         @argCounter += 1
@@ -381,11 +384,33 @@ class LetsCrate
     # ------
     
     def printInfo(name, short_code, id)
-        return "Name: #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
+        if !(@width.nil?)
+            puts "#{name}%#{@width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
+        else
+            puts "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
+        end
+    end
+    
+    def printFile(name, short_code, id)
+        if !(@width.nil?)
+            puts "* #{name}%#{@width-(name.length+2)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
+            else
+            puts "* #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
+        end
     end
     
     def printError(message, argument)
-        puts "Error: #{message} <#{argument}>"
+        if !(@width.nil?)
+            puts "Error: #{message}%#{@width-(message.length+7)}s" % "<#{argument}>"
+        else
+            puts "Error: #{message}\t<#{argument}>"
+    end
+    end
+    
+    # ------
+    
+    def detect_terminal_size
+        return `tput cols`.to_i    # returns terminal width in characters
     end
 end
 
