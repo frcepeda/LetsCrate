@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.0"
+VERSION = "1.0.1"
 
 class App
     
@@ -46,7 +46,7 @@ class App
         @options = OpenStruct.new    # all the arguments will be parsed into this openstruct
         @options.actionCounter = 0     # this should always end up as 1, or else there's a problem with the script arguments.
         @options.action = nil    # this will be performed by the LetsCrate class
-        @options.verbose = true
+        @options.verbose = true    # if false, nothing will be printed to the screen.
         
         opts = OptionParser.new
         
@@ -123,13 +123,13 @@ class App
             @options.verbose = false
         }
         
-        opts.on( '--version', 'Output version' ) {
+        opts.on( '-v', '--version', 'Output version' ) {
             puts "LetsCrate v#{VERSION} by Freddy Roman <frcepeda@gmail.com>"
             exit 0
         }
         
         opts.on( '-h', '--help', 'Display this screen' ) {
-            puts opts
+            puts opts   # displays help screen
             exit 0
         }
         
@@ -139,17 +139,18 @@ class App
         
         if @options.actionCounter > 1
             puts "More than one action was selected. Please select only one action."
+            puts opts   # displays help screen
             exit 1
         end
         
         if (@options.username == nil || @options.password == nil) && @options.actionCounter != 0
             puts "You need to supply a set of credentials to use the LetsCrate API."
-            puts opts
+            puts opts   # displays help screen
             exit 1
         end
         
         if @options.actionCounter == 0      # nothing was selected
-            puts opts
+            puts opts   # displays help screen
             exit 0
         end
     end
@@ -165,6 +166,22 @@ end
 
 class LetsCrate
     
+    # this allows using colors with ANSI escape codes
+    
+    def colorize(text, color_code)
+        "\e[#{color_code}m#{text}\e[0m"
+    end
+    
+    def red(text); colorize(text, 31); end
+    def green(text); colorize(text, 32); end
+    def yellow(text); colorize(text, 33); end
+    def blue(text); colorize(text, 34); end
+    def magenta(text); colorize(text, 35); end
+    def cyan(text); colorize(text, 36); end
+    def white(text); colorize(text, 37); end
+    
+    # here ends the color codes
+    
     def initialize(options, arguments)
         @options = options
         @arguments = arguments
@@ -172,8 +189,7 @@ class LetsCrate
     end
     
     def run
-        @width = nil
-        @width = self.detect_terminal_size if self.detect_terminal_size != nil  # get terminal width
+        @width = self.detect_terminal_size  # get terminal width
         
         if @arguments.count > 0     # check if command requires extra arguments
             for argument in @arguments
@@ -385,9 +401,9 @@ class LetsCrate
     
     def printInfo(name, short_code, id)
         if !(@width.nil?)
-            puts "#{name}%#{@width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
+            puts "#{name}%#{@width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %#s to align to the right.
         else
-            puts "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
+            puts "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"  # in case that the terminal width couldn't be obtained.
         end
     end
     
@@ -404,7 +420,7 @@ class LetsCrate
             puts "Error: #{message}%#{@width-(message.length+7)}s" % "<#{argument}>"
         else
             puts "Error: #{message}\t<#{argument}>"
-    end
+        end
     end
     
     # ------
@@ -413,7 +429,6 @@ class LetsCrate
         return `tput cols`.to_i    # returns terminal width in characters
     end
 end
-
 
 # Create and run the application
 app = App.new(ARGV)
