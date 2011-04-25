@@ -48,7 +48,7 @@ class App
         
         opts.on( '-u [ID]', '--upload [ID]', 'Upload files to crate with ID' ) { |upID|
             if upID      # TO DO - add verification via regex
-            @options.uploadID = upID
+            @options.crateID = upID
             @options.action = :uploadFile
             @options.actionCounter += 1
             else
@@ -77,7 +77,7 @@ class App
     
     def run
         puts @options
-        puts @arguments
+        puts @arguments.to_s
         
         if @options.actionCounter != 1
         puts "More than one action was selected."
@@ -93,22 +93,43 @@ end
 
 class LetsCrate
     
-    def initialize(@options, @arguments)
-        # set the base URL
-        # set the credentials
+    def initialize(options, arguments)
+        @options = options
+        @arguments = arguments
     end
     
     def run
-        # test the credentials
-        # select one of the methods
+        if testCredentials
+            self.send(@options.action)
+        else
+            puts "Invalid credentials. Please verify your username and password."
+        end
+    end
+    
+    def testCredentials
+        true
+        # TO DO - Actually implement this.
     end
     
     def uploadFile
-        # TO DO - Implement uploads
+        for file in @arguments
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
+                                          :params => {
+                                            :file => File.open(file ,"r"),
+                                            :crate_id => @options.crateID
+                                          },
+                                          :username => @options.username,
+                                          :password => @options.password,
+                                          )
+        end
     end
     
     def deleteFile
         # TO DO - Implement deletions
+    end
+    
+    def parseResponse(response)
+        # TO DO - Implement
     end
 end
 
