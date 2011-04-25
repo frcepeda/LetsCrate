@@ -31,34 +31,39 @@ class App
         opts.on( '-l [username:password]', '--login [username:password]', 'Login with this username and password' ) { |login|
             
             if login
-            credentials = login.split(/:/)   # makes a 2-item array from the input
+                credentials = login.split(/:/)   # makes a 2-item array from the input
             else
-            puts "You need to supply a set of credentials to use the LetsCrate API"
-            exit 1
+                puts "You need to supply a set of credentials to use the LetsCrate API"
+                exit 1
             end
             
             if credentials.count == 2   # this array musn't have more than 2 items.
-            @options.username = credentials[0]
-            @options.password = credentials[1]
+                @options.username = credentials[0]
+                @options.password = credentials[1]
             else
-            puts "Credentials invalid, please input them in the format \"username:password\""
-            exit 1
+                puts "Credentials invalid, please input them in the format \"username:password\""
+                exit 1
             end
         }
         
         opts.on( '-u [ID]', '--upload [ID]', 'Upload files to crate with ID' ) { |upID|
             if upID      # TO DO - add verification via regex
-            @options.crateID = upID
-            @options.action = :uploadFile
-            @options.actionCounter += 1
+                @options.crateID = upID
+                @options.action = :uploadFile
+                @options.actionCounter += 1
             else
-            puts "A crate ID is a 5 digit number"
-            exit 1
+                puts "A crate ID is a 5 digit number"
+                exit 1
             end
         }
         
         opts.on( '-d', '--delete', 'Delete files with IDs' ) {
             @options.action = :deleteFile
+            @options.actionCounter += 1
+        }
+        
+        opts.on( '-a', '--list', 'List all files by crate' ) {
+            @options.action = :listFiles
             @options.actionCounter += 1
         }
         
@@ -77,8 +82,8 @@ class App
     
     def run
         if @options.actionCounter != 1
-        puts "More than one action was selected."
-        exit 1
+            puts "More than one action was selected. Please select only one action."
+            exit 1
         end
             
         crate = LetsCrate.new(@options, @arguments)
@@ -136,17 +141,29 @@ class LetsCrate
         processFilesDeleted
     end
     
+    def listFiles
+        @responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/list.json",
+                                                 :username => @options.username,
+                                                 :password => @options.password,
+                                                 )
+        parseResponses
+        processFileList
+    end
+    
     def parseResponses
         for response in @responses
-        @resHashed << JSON.parse(response.body)
+            @resHashed << JSON.parse(response.body)
         end
     end
     
     def processFilesUploaded
         i = 0
         for hash in @resHashed
-            puts "Error: #{hash['message']} <#{@arguments[i]}>" if hash.values.include?("failure")
-            puts "URL: #{hash['file']['short_url']}, ID: #{hash['file']['id']}      <#{@arguments[i]}>" if hash.values.include?("success")
+            if hash.values.include?("failure")
+                puts "Error: #{hash['message']}     <#{@arguments[i]}>" 
+            else
+                puts "URL: #{hash['file']['short_url']}, ID: #{hash['file']['id']}      <#{@arguments[i]}>" if hash.values.include?("success")
+            end
             i += 1
         end
     end
@@ -154,9 +171,29 @@ class LetsCrate
     def processFilesDeleted
         i = 0
         for hash in @resHashed
-            puts "Error: #{hash['message']} <#{@arguments[i]}>" if hash.values.include?("failure")
-            puts "#{@arguments[i]} deleted" if hash.values.include?("success")
+            if hash.values.include?("failure")
+                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+            else
+                puts "#{@arguments[i]} deleted" if hash.values.include?("success")
+            end
             i += 1
+        end
+    end
+    
+    def processFileList
+        for hash in @resHashed
+            if hash.values.include?("failure")
+                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+            else
+                crates = hash['crates']
+                for crate in crates
+                    puts "#{crate['name']} \t\tURL: http://lts.cr/#{crate['short_code']}\tID: #{crate['id']}"
+                    for file in crate['files']
+                        puts "* #{file['name']}\t\tURL: http://lts.cr/#{file['short_code']}\tID: #{file['id']}"
+                    end if crate['files'] # the last if is to avoid errors with empty crates
+                    puts "\n"
+                end
+            end
         end
     end
 end
