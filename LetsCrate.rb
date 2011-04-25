@@ -258,7 +258,7 @@ class LetsCrate
             if hash.values.include?("success")
                 puts "The credentials are valid"
                 else
-                puts "The credentials are invalid"
+                printError("The credentials are invalid", "User:#{@options.username} Pass:#{@options.password}")
             end
         end
     end
@@ -267,9 +267,10 @@ class LetsCrate
         i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
-                puts "Error: #{hash['message']}     <#{@arguments[i]}>" 
+                printError(hash['message'], @arguments[i])
             else
-                puts "URL: #{hash['file']['short_url']}, ID: #{hash['file']['id']}      <#{File.basename(@arguments[i])}>" if hash.values.include?("success")
+                puts hash
+                puts printInfo(File.basename(@arguments[i]), hash['file']['short_code'], hash['file']['id'])
             end
             i += 1
         end
@@ -279,7 +280,7 @@ class LetsCrate
         i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
-                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+                printError(hash['message'], @arguments[i])
             else
                 puts "#{@arguments[i]} deleted"
             end
@@ -291,14 +292,14 @@ class LetsCrate
         i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
-                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+                printError(hash['message'], @arguments[i])
             else
                 crates = hash['crates']
                 for crate in crates
-                    puts "#{crate['name']} \t\tURL: http://lts.cr/#{crate['short_code']}\tID: #{crate['id']}"
+                    puts printInfo(crate['name'], crate['short_code'], crate['id'])
                     if crate['files'] # test if crate is empty
                         for file in crate['files']
-                            puts "* #{file['name']}\t\tURL: http://lts.cr/#{file['short_code']}\tID: #{file['id']}"
+                            puts "* "+printInfo(file['name'], file['short_code'], file['id'])
                         end
                     else
                         puts "* Crate is empty."
@@ -314,9 +315,9 @@ class LetsCrate
         i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
-                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+                printError(hash['message'], @arguments[i])
             else
-                puts "#{hash['item']['name']}\t\tURL: http://lts.cr/#{hash['item']['short_code']}\tID: #{hash['item']['id']}"
+                puts printInfo(hash['item']['name'], hash['item']['short_code'], hash['item']['id'])
             end
             i += 1
         end
@@ -326,9 +327,9 @@ class LetsCrate
         i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
-                puts "Error: #{hash['message']}     <#{@arguments[i]}>" 
+                printError(hash['message'], @arguments[i])
             else
-                puts "Name: #{hash['crate']['name']}\t\tURL: http://lts.cr/#{hash['crate']['short_code']}\tID: #{hash['crate']['id']}" if hash.values.include?("success")
+                puts printInfo(hash['crate']['name'], hash['crate']['short_code'], hash['crate']['id'])
             end
             i += 1
         end
@@ -338,11 +339,11 @@ class LetsCrate
         i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
-                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+                printError(hash['message'], @arguments[i])
             else
                 crates = hash['crates']
                 for crate in crates
-                    puts "#{crate['name']} \t\tURL: http://lts.cr/#{crate['short_code']}\tID: #{crate['id']}"
+                    puts printInfo(crate['name'], crate['short_code'], crate['id'])
                 end
             end
             i += 1
@@ -353,9 +354,9 @@ class LetsCrate
         i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
-                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+                printError(hash['message'], @arguments[i])
             else
-                puts "renamed #{hash['crate']['id']} to #{hash['crate']['name']}" if hash.values.include?("success")
+                puts "renamed "+hash['crate']['id']+" to "+hash['crate']['name']
             end
             i += 1
         end
@@ -365,12 +366,22 @@ class LetsCrate
         i = 0
         for hash in @resHashed
             if hash.values.include?("failure")
-                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+                printError(hash['message'], @arguments[i])
             else
-                puts "#{@arguments[i]} deleted" if hash.values.include?("success")
+                puts "#{@arguments[i]} deleted"
             end
             i += 1
         end
+    end
+    
+    # ------
+    
+    def printInfo(name, short_code, id)
+        return "Name: #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
+    end
+    
+    def printError(message, argument)
+        puts "Error: #{message} <#{argument}>"
     end
 end
 
