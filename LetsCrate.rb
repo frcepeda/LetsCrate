@@ -67,6 +67,11 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on( '--id', 'Show file with ID' ) {
+            @options.action = :listFileID
+            @options.actionCounter += 1
+        }
+        
         opts.on( '--version', 'Output version' ) {
             puts "LetsCrate v#{VERSION} by Freddy Roman <frcepeda@gmail.com>"
             exit 0
@@ -150,6 +155,17 @@ class LetsCrate
         processFileList
     end
     
+    def listFileID
+        for fileID in @arguments
+            @responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/show/#{fileID}.json",
+                                                 :username => @options.username,
+                                                 :password => @options.password,
+                                                 )
+        end
+        parseResponses
+        processFileID
+    end
+    
     def parseResponses
         for response in @responses
             @resHashed << JSON.parse(response.body)
@@ -193,6 +209,17 @@ class LetsCrate
                     end if crate['files'] # the last if is to avoid errors with empty crates
                     puts "\n"
                 end
+            end
+        end
+    end
+    
+    def processFileID
+        for hash in @resHashed
+            if hash.values.include?("failure")
+                puts "Error: #{hash['message']}     <#{@arguments[i]}>"
+            else
+                puts hash
+                puts "#{hash['item']['name']}\t\tURL: http://lts.cr/#{hash['item']['short_code']}\tID: #{hash['item']['id']}"
             end
         end
     end
