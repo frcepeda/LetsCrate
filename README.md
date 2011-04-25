@@ -5,6 +5,39 @@ This is an unofficial command line client for [LetsCrate][] written in Ruby.
 
 [LetsCrate]: http://letscrate.com
 
+Usage
+-----
+
+Usage: LetsCrate.rb <-l username:password> [options] file1 file2 ...
+   or: LetsCrate.rb <-l username:password> [options] id1 id2 ...
+
+    -l, --login [username:password]  Login with this username and password
+    -u, --upload [Crate ID]          Upload files to crate with ID
+    -d, --delete                     Delete files with IDs
+    -a, --list                       List all files by crate
+    -i, --id                         Show files with IDs
+    -n, --new                        Create new crates with names
+    -A, --listcrates                 List all crates
+    -r, --rename [Crate ID]          Rename crate to name
+    -D, --deletecrate                Delete crates with IDs
+    -t, --test                       Only test the credentials
+    -q, --quiet                      Do not output anything to the terminal
+    -v, --version                    Output version
+    -h, --help                       Display this screen
+
+An ID is a 5 digit identifier used internally by LetsCrate.
+To know the ID of your files, use the "-a" option to list them with their
+respective URLs and IDs.
+
+TO DO
+-----
+
+* Add file searching
+* Allow using filenames where IDs are required
+* Implement checks on files and IDs to see if they're valid
+* Output more informative error messages
+* Fix formatting errors with long filenames
+
 License
 -------
 
