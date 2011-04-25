@@ -16,11 +16,6 @@ class App
         @arguments = argList      # store arguments in local variable
         processArguments
     end
-
-    def run
-        puts @options
-        puts @arguments
-    end
     
     def processArguments
         
@@ -54,7 +49,7 @@ class App
         opts.on( '-u [ID]', '--upload [ID]', 'Upload files to crate with ID' ) { |upID|
             if upID      # TO DO - add verification via regex
             @options.uploadID = upID
-            @options.action = :upload
+            @options.action = :uploadFile
             @options.actionCounter += 1
             else
             puts "A crate ID is a 5 digit number"
@@ -80,12 +75,41 @@ class App
         opts.parse!(@arguments)
     end
     
+    def run
+        puts @options
+        puts @arguments
+        
+        if @options.actionCounter != 1
+        puts "More than one action was selected."
+        exit 1
+        end
+            
+        crate = LetsCrate.new(@options, @arguments)
+        crate.run
+        
+    end
+    
 end
 
 class LetsCrate
     
+    def initialize(@options, @arguments)
+        # set the base URL
+        # set the credentials
+    end
     
+    def run
+        # test the credentials
+        # select one of the methods
+    end
     
+    def uploadFile
+        # TO DO - Implement uploads
+    end
+    
+    def deleteFile
+        # TO DO - Implement deletions
+    end
 end
 
 
