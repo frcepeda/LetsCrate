@@ -21,7 +21,7 @@ class App
         
         @options = OpenStruct.new    # all the arguments will be parsed into this openstruct
         @options.actionCounter = 0     # this should always end up as 1, or else there's a problem with the script arguments.
-        @options.action = nil    # this will be passed as an argument to the LetsCrate class
+        @options.action = nil    # this will be performed by the LetsCrate class
         
         opts = OptionParser.new
         
@@ -37,7 +37,7 @@ class App
                 exit 1
             end
             
-            if credentials.count == 2   # this array musn't have more than 2 items.
+            if credentials.count == 2   # this array musn't have more than 2 items because it's username + password.
                 @options.username = credentials[0]
                 @options.password = credentials[1]
             else
@@ -67,7 +67,7 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '--id', 'Show files with IDs' ) {
+        opts.on( '-i', '--id', 'Show files with IDs' ) {
             @options.action = :listFileID
             @options.actionCounter += 1
         }
