@@ -46,6 +46,7 @@ class App
         @options = OpenStruct.new    # all the arguments will be parsed into this openstruct
         @options.actionCounter = 0     # this should always end up as 1, or else there's a problem with the script arguments.
         @options.action = nil    # this will be performed by the LetsCrate class
+        @options.verbose = true
         
         opts = OptionParser.new
         
@@ -118,6 +119,10 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on( '-q', '--quiet', 'Do not output anything to the terminal' ) {
+            @options.verbose = false
+        }
+        
         opts.on( '--version', 'Output version' ) {
             puts "LetsCrate v#{VERSION} by Freddy Roman <frcepeda@gmail.com>"
             exit 0
@@ -163,31 +168,34 @@ class LetsCrate
     def initialize(options, arguments)
         @options = options
         @arguments = arguments
-        @responses = []    # the responses in JSON format get stored here.
-        @resHashed = []    # the responses in native hash format go here.
+        @argCounter = 0
     end
     
     def run
-        responses = self.send(@options.action)    # responses is aleady a parsed hash.
-        self.send("PRINT"+@options.action.to_s, responses)
+        if @arguments.count > 0     # check if command requires extra arguments
+            for argument in @arguments
+                response = self.send(@options.action, argument)    # response is aleady a parsed hash.
+                self.send("PRINT"+@options.action.to_s, response) if @options.verbose
+            end
+        else
+            response = self.send(@options.action)    # response is aleady a parsed hash.
+            self.send("PRINT"+@options.action.to_s, response) if @options.verbose
+        end
     end
     
     # -----   API documentation is at http://letscrate.com/api
     
     def testCredentials
-        responses = []
-        responses << Typhoeus::Request.post("https://api.letscrate.com/1/users/authenticate.json",
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/users/authenticate.json",
                                           :username => @options.username,
                                           :password => @options.password,
                                           )
         
-        return parseResponses(responses)
+        return parseResponse(response)
     end
     
-    def uploadFile
-        responses = []
-        for file in @arguments
-            responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
+    def uploadFile(file)
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
                                           :params => {
                                             :file => File.open(file ,"r"),
                                             :crate_id => @options.crateID
@@ -195,227 +203,179 @@ class LetsCrate
                                           :username => @options.username,
                                           :password => @options.password,
                                           )
-        end
         
-        return parseResponses(responses)
+        return parseResponse(response)
     end
     
-    def deleteFile
-        responses = []
-        for fileID in @arguments
-            responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/destroy/#{fileID}.json",
+    def deleteFile(fileID)
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/destroy/#{fileID}.json",
                                                 :username => @options.username,
                                                 :password => @options.password,
                                                 )
-        end
-       
-        return parseResponses(responses)
+            
+        return parseResponse(response)
     end
     
     def listFiles
-        responses = []
-        responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/list.json",
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/list.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
         
-        return parseResponses(responses)
+        return parseResponse(response)
     end
     
-    def listFileID
-        responses = []
-        for fileID in @arguments
-            responses << Typhoeus::Request.post("https://api.letscrate.com/1/files/show/#{fileID}.json",
+    def listFileID(fileID)
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/show/#{fileID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
-        end
         
-        return parseResponses(responses)
+        return parseResponse(response)
     end
     
-    def createCrate
-        responses = []
-        for name in @arguments
-            responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/add.json",
+    def createCrate(name)
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/add.json",
                                                  :params => {
                                                  :name => name
                                                  },
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
-        end
        
-        return parseResponses(responses)
+        return parseResponse(response)
     end
     
     def listCrates
-        responses = []
-        responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/list.json",
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/list.json",
                                              :username => @options.username,
                                              :password => @options.password,
                                              )
         
-        return parseResponses(responses)
+        return parseResponse(response)
     end
     
-    def renameCrate
-        responses = []
-        for name in @arguments 
-            responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
+    def renameCrate(name)
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
                                                  :params => {
                                                  :name => name
                                                  },
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
-        end
         
-        return parseResponses(responses)
+        return parseResponse(response)
     end
     
-    def deleteCrate
-        responses = []
-        for crateID in @arguments
-            responses << Typhoeus::Request.post("https://api.letscrate.com/1/crates/destroy/#{crateID}.json",
+    def deleteCrate(crateID)
+        response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/destroy/#{crateID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
-        end
       
-        return parseResponses(responses)
+        return parseResponse(response)
     end
     
     # ------
     
-    def parseResponses(responses)
-        resHashed = []
-        for response in responses
-            resHashed << JSON.parse(response.body)
-        end
-        return resHashed
+    def parseResponse(response)
+        return JSON.parse(response.body)
     end
     
     # ------
     
-    def PRINTtestCredentials(resHashed)
-        for hash in resHashed
-            if hash.values.include?("success")
-                puts "The credentials are valid"
-                else
-                printError("The credentials are invalid", "User:#{@options.username} Pass:#{@options.password}")
-            end
+    def PRINTtestCredentials(hash)
+        if hash.values.include?("success")
+            puts "The credentials are valid"
+            else
+            printError("The credentials are invalid", "User:#{@options.username} Pass:#{@options.password}")
         end
     end
     
-    def PRINTuploadFile(resHashed)
-        i = 0
-        for hash in resHashed
-            if hash.values.include?("failure")
-                printError(hash['message'], @arguments[i])
-            else
-                puts printInfo(File.basename(@arguments[i]), hash['file']['short_code'], hash['file']['id'])
-            end
-            i += 1
+    def PRINTuploadFile(hash)
+        if hash.values.include?("failure")
+            printError(hash['message'], @arguments[@argCounter])
+        else
+            puts printInfo(File.basename(@arguments[@argCounter]), hash['file']['short_code'], hash['file']['id'])
         end
+        @argCounter += 1
     end
     
-    def PRINTdeleteFile(resHashed)
-        i = 0
-        for hash in resHashed
-            if hash.values.include?("failure")
-                printError(hash['message'], @arguments[i])
-            else
-                puts "#{@arguments[i]} deleted"
-            end
-            i += 1
+    def PRINTdeleteFile(hash)
+        if hash.values.include?("failure")
+            printError(hash['message'], @arguments[@argCounter])
+        else
+            puts "#{@arguments[@argCounter]} deleted"
         end
+        @argCounter += 1
     end
     
-    def PRINTlistFiles(resHashed)
-        i = 0
-        for hash in resHashed
-            if hash.values.include?("failure")
-                printError(hash['message'], @arguments[i])
-            else
-                crates = hash['crates']
-                for crate in crates
-                    puts printInfo(crate['name'], crate['short_code'], crate['id'])
-                    if crate['files']      # test if crate is empty
-                        for file in crate['files']
-                            puts "* "+printInfo(file['name'], file['short_code'], file['id'])
-                        end
-                    else
-                        puts "* Crate is empty."
+    def PRINTlistFiles(hash)
+        if hash.values.include?("failure")
+                printError(hash['message'], @arguments[@argCounter])
+        else
+            crates = hash['crates']
+            for crate in crates
+                puts printInfo(crate['name'], crate['short_code'], crate['id'])
+                if crate['files']      # test if crate is empty
+                    for file in crate['files']
+                        puts "* "+printInfo(file['name'], file['short_code'], file['id'])
                     end
-                    puts "\n"
+                else
+                    puts "* Crate is empty."
                 end
+                puts "\n"
             end
-            i += 1
         end
+        @argCounter += 1
     end
     
-    def PRINTlistFileID(resHashed)
-        i = 0
-        for hash in resHashed
-            if hash.values.include?("failure")
-                printError(hash['message'], @arguments[i])
-            else
-                puts printInfo(hash['item']['name'], hash['item']['short_code'], hash['item']['id'])
-            end
-            i += 1
+    def PRINTlistFileID(hash)
+        if hash.values.include?("failure")
+            printError(hash['message'], @arguments[@argCounter])
+        else
+            puts printInfo(hash['item']['name'], hash['item']['short_code'], hash['item']['id'])
         end
+        @argCounter += 1
     end
     
-    def PRINTcreateCrate(resHashed)
-        i = 0
-        for hash in resHashed
-            if hash.values.include?("failure")
-                printError(hash['message'], @arguments[i])
-            else
-                puts printInfo(hash['crate']['name'], hash['crate']['short_code'], hash['crate']['id'])
-            end
-            i += 1
+    def PRINTcreateCrate(hash)
+        if hash.values.include?("failure")
+            printError(hash['message'], @arguments[@argCounter])
+        else
+            puts printInfo(hash['crate']['name'], hash['crate']['short_code'], hash['crate']['id'])
         end
+        @argCounter += 1
     end
     
-    def PRINTlistCrates(resHashed)
-        i = 0
-        for hash in resHashed
-            if hash.values.include?("failure")
-                printError(hash['message'], @arguments[i])
-            else
-                crates = hash['crates']
-                for crate in crates
-                    puts printInfo(crate['name'], crate['short_code'], crate['id'])
-                end
+    def PRINTlistCrates(hash)
+        if hash.values.include?("failure")
+            printError(hash['message'], @arguments[@argCounter])
+        else
+            crates = hash['crates']
+            for crate in crates
+                puts printInfo(crate['name'], crate['short_code'], crate['id'])
             end
-            i += 1
         end
+        @argCounter += 1
     end
     
-    def PRINTrenameCrate(resHashed)
-        i = 0
-        for hash in resHashed
-            if hash.values.include?("failure")
-                printError(hash['message'], @arguments[i])
-            else
-                puts "renamed "+hash['crate']['id']+" to "+hash['crate']['name']
-            end
-            i += 1
+    def PRINTrenameCrate(hash)
+       if hash.values.include?("failure")
+            printError(hash['message'], @arguments[@argCounter])
+        else
+            puts "renamed "+hash['crate']['id']+" to "+hash['crate']['name']
         end
+        @argCounter += 1
     end
     
-    def PRINTdeleteCrate(resHashed)
-        i = 0
-        for hash in resHashed
-            if hash.values.include?("failure")
-                printError(hash['message'], @arguments[i])
-            else
-                puts "#{@arguments[i]} deleted"
-            end
-            i += 1
+    def PRINTdeleteCrate(hash)
+        if hash.values.include?("failure")
+            printError(hash['message'], @arguments[@argCounter])
+        else
+            puts "#{@arguments[@argCounter]} deleted"
         end
+        @argCounter += 1
     end
     
     # ------
