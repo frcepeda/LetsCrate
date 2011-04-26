@@ -33,6 +33,7 @@ require 'typhoeus'
 require 'json'
 
 VERSION = "1.1"
+APIVERSION = "1"
 
 # here start the modules
 
@@ -59,9 +60,9 @@ module Output
     
     def printError(message, argument)
         if !(@options.width.nil?)
-            puts red("Error:")+" #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
+            $stderr.puts red("Error:")+" #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
             else
-            puts red("Error:")+" #{message}\t<#{argument}>"
+            $stderr.puts red("Error:")+" #{message}\t<#{argument}>"
         end
     end
     
@@ -106,7 +107,7 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_BANNER = "Usage: #{File.basename(__FILE__)} <-l username:password> [options] file1 file2 ...\n"+ 
     "   or: #{File.basename(__FILE__)} <-l username:password> [options] id1 id2 ...\n"+"\n"
     
-    STR_VERSION = "LetsCrate v#{VERSION} by Freddy Roman <frcepeda@gmail.com>"
+    STR_VERSION = "LetsCrate v#{VERSION} (API Version #{APIVERSION}) by Freddy Roman <frcepeda@gmail.com>"
     
     STR_TOO_MANY_ACTIONS = "More than one action was selected. Please select only one action."
     
@@ -165,7 +166,7 @@ class App
                 @options.password = credentials[1]
                 @options.login = 1
             else
-                puts STR_CREDENTIALS_ERROR
+                printError(STR_CREDENTIALS_ERROR, login.to_s)
                 exit 1
             end
         }
@@ -242,13 +243,13 @@ class App
         
         if @options.actionCounter > 1
             printError(STR_TOO_MANY_ACTIONS, "#{@options.actionCounter}")
-            puts STR_RTFM
+            $stderr.puts STR_RTFM
             exit 1
         end
         
         if (@options.username == nil || @options.password == nil) && @options.actionCounter != 0
             printError(STR_ACCOUNT_NEEDED, "NoLoginError")
-            puts STR_LOGIN_WITH_L_SWITCH
+            $stderr.puts STR_LOGIN_WITH_L_SWITCH
             exit 1
         end
         
@@ -275,6 +276,7 @@ class LetsCrate
         @options = options
         @arguments = arguments
         @argCounter = -1    # argument index is raised first thing on every method, and it needs to be 0 the first time it's used.
+        @BaseURL = https://api.letscrate.com/1/
     end
     
     def run
@@ -292,7 +294,7 @@ class LetsCrate
     # -----   API documentation is at http://letscrate.com/api
     
     def testCredentials
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/users/authenticate.json",
+        response = Typhoeus::Request.post("#{BaseURL}users/authenticate.json",
                                           :username => @options.username,
                                           :password => @options.password,
                                           )
@@ -302,7 +304,7 @@ class LetsCrate
     
     def uploadFile(file)
         if IDvalid?(@options.crateID)
-            response = Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
+            response = Typhoeus::Request.post("#{BaseURL}files/upload.json",
                                           :params => {
                                             :file => File.open(file ,"r"),
                                             :crate_id => @options.crateID
@@ -320,7 +322,7 @@ class LetsCrate
     
     def deleteFile(fileID)
         if IDvalid?(fileID)
-            response = Typhoeus::Request.post("https://api.letscrate.com/1/files/destroy/#{fileID}.json",
+            response = Typhoeus::Request.post("#{BaseURL}files/destroy/#{fileID}.json",
                                                 :username => @options.username,
                                                 :password => @options.password,
                                                 )
@@ -332,7 +334,7 @@ class LetsCrate
     end
     
     def listFiles
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/list.json",
+        response = Typhoeus::Request.post("#{BaseURL}files/list.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
@@ -342,7 +344,7 @@ class LetsCrate
     
     def listFileID(fileID)
         if IDvalid?(fileID)
-            response = Typhoeus::Request.post("https://api.letscrate.com/1/files/show/#{fileID}.json",
+            response = Typhoeus::Request.post("#{BaseURL}files/show/#{fileID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
@@ -355,7 +357,7 @@ class LetsCrate
     end
     
     def createCrate(name)
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/add.json",
+        response = Typhoeus::Request.post("#{BaseURL}crates/add.json",
                                                  :params => {
                                                  :name => name
                                                  },
@@ -367,7 +369,7 @@ class LetsCrate
     end
     
     def listCrates
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/list.json",
+        response = Typhoeus::Request.post("#{BaseURL}crates/list.json",
                                              :username => @options.username,
                                              :password => @options.password,
                                              )
@@ -377,7 +379,7 @@ class LetsCrate
     
     def renameCrate(name)
         if IDvalid?(@options.crateID)
-            response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
+            response = Typhoeus::Request.post("#{BaseURL}crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
                                                  :params => {
                                                  :name => name
                                                  },
@@ -394,7 +396,7 @@ class LetsCrate
     
     def deleteCrate(crateID)
         if IDvalid?(crateID)
-            response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/destroy/#{crateID}.json",
+            response = Typhoeus::Request.post("#{BaseURL}crates/destroy/#{crateID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
