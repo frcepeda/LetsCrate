@@ -34,6 +34,8 @@ require 'json'
 
 VERSION = "1.1"
 
+# here start the modules
+
 module Colors      # this allows using colors with ANSI escape codes
     
     def colorize(text, color_code)
@@ -64,6 +66,7 @@ module Output
     end
     
     def printInfo(name, short_code, id)
+        name = truncateName(name, @options.width-35) if name.length > @options.width-35
         if !(@options.width.nil?)
             puts "#{name}%#{@options.width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %#s to align to the right.
             else
@@ -72,11 +75,16 @@ module Output
     end
     
     def printFile(name, short_code, id)
+        name = truncateName(name, @options.width-37) if name.length > @options.width-37
         if !(@options.width.nil?)
             puts "* #{name}%#{@options.width-(name.length+2)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
             else
             puts "* #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
         end
+    end
+    
+    def truncateName(name, length)
+        return name[0..((length/2)-2).to_i]+"..."+name[-(((length/2)-1).to_i)..-1]
     end
     
 end
@@ -93,11 +101,43 @@ module IntegrityChecks
     
 end
 
-class App
+module Strings   # this module contains almost all the strings used in the program
     
+    STR_BANNER = "Usage: #{File.basename(__FILE__)} <-l username:password> [options] file1 file2 ...\n"+ 
+    "   or: #{File.basename(__FILE__)} <-l username:password> [options] id1 id2 ...\n"+"\n"
+    
+    STR_VERSION = "LetsCrate v#{VERSION} by Freddy Roman <frcepeda@gmail.com>"
+    
+    STR_TOO_MANY_ACTIONS = "More than one action was selected. Please select only one action."
+    
+    STR_FILEID_ERROR = "A file ID is a 5 digit number. Use -a to list your files's IDs."
+    STR_CRATEID_ERROR = "A crate ID is a 5 digit number. Use -A to list your crates's IDs."
+    
+    STR_RTFM = "Use the -h flag for help, or read the README."
+    
+    STR_ACCOUNT_NEEDED = "You need to an account to use the LetsCrate API."
+    STR_LOGIN_WITH_L_SWITCH = "Use the \"-l\" switch to specify your login credentials"
+    STR_CREDENTIALS_ERROR = "Credentials invalid, please input them in the format \"username:password\""
+    
+    STR_VALID_CREDENTIALS = "The credentials are valid"
+    STR_INVALID_CREDENTIALS = "The credentials are invalid"
+    
+    STR_EMPTY_CRATE = "* Crate is empty."
+    
+end
+
+module Everything    # I got tired of manually adding all modules.
     include Colors
     include Output
     include IntegrityChecks
+    include Strings
+end
+
+#  here end the modules
+
+class App
+    
+    include Everything
     
     def initialize(argList)
         @arguments = argList      # store arguments in local variable
@@ -114,8 +154,7 @@ class App
         
         opts = OptionParser.new
         
-        opts.banner = "Usage: #{File.basename(__FILE__)} <-l username:password> [options] file1 file2 ...\n"+ 
-                      "   or: #{File.basename(__FILE__)} <-l username:password> [options] id1 id2 ...\n"+"\n"
+        opts.banner = STR_BANNER
         
         opts.on( '-l', '--login [username:password]', 'Login with this username and password' ) { |login|
             
@@ -126,7 +165,7 @@ class App
                 @options.password = credentials[1]
                 @options.login = 1
             else
-                puts "Credentials invalid, please input them in the format \"username:password\""
+                puts STR_CREDENTIALS_ERROR
                 exit 1
             end
         }
@@ -137,7 +176,7 @@ class App
                 @options.action = :uploadFile
                 @options.actionCounter += 1
             else
-                printError("A crate ID is a 5 digit number. Use -A to list your crates's IDs.", upID)
+                printError(STR_CRATEID_ERROR, upID)
                 exit 1
             end
         }
@@ -188,7 +227,7 @@ class App
         }
         
         opts.on( '-v', '--version', 'Output version' ) {
-            puts "LetsCrate v#{VERSION} by Freddy Roman <frcepeda@gmail.com>"
+            puts STR_VERSION
             exit 0
         }
         
@@ -202,14 +241,14 @@ class App
         # Errors:
         
         if @options.actionCounter > 1
-            printError("More than one action was selected. Please select only one action.", "#{@options.actionCounter}")
-            puts "Use the -h flag for help, or read the README."
+            printError(STR_TOO_MANY_ACTIONS, "#{@options.actionCounter}")
+            puts STR_RTFM
             exit 1
         end
         
         if (@options.username == nil || @options.password == nil) && @options.actionCounter != 0
-            printError("You need to an account to use the LetsCrate API.", "NoLoginError")
-            puts "Use the \"-l\" switch to specify your login credentials"
+            printError(STR_ACCOUNT_NEEDED, "NoLoginError")
+            puts STR_LOGIN_WITH_L_SWITCH
             exit 1
         end
         
@@ -230,9 +269,7 @@ end
 
 class LetsCrate
     
-    include Colors
-    include Output
-    include IntegrityChecks
+    include Everything
     
     def initialize(options, arguments)
         @options = options
@@ -276,7 +313,7 @@ class LetsCrate
         
             return parseResponse(response)
         else
-            printError("A crate ID is a 5 digit number. Use -A to list your crates's IDs.", @options.crateID)
+            printError(STR_CRATEID_ERROR, @options.crateID)
             exit 1
         end
     end
@@ -290,7 +327,7 @@ class LetsCrate
             
             return parseResponse(response)
         else
-            printError("A file ID is a 5 digit number. Use -a to list your files's IDs.", fileID)
+            printError(STR_FILEID_ERROR, fileID)
         end
     end
     
@@ -312,7 +349,7 @@ class LetsCrate
         
             return parseResponse(response)
         else
-            printError("A file ID is a 5 digit number. Use -a to list your files's IDs.", fileID)
+            printError(STR_FILEID_ERROR, fileID)
         end
             
     end
@@ -350,7 +387,7 @@ class LetsCrate
         
             return parseResponse(response)
         else
-            printError("A crate ID is a 5 digit number. Use -A to list your crates's IDs.", @options.crateID)
+            printError(STR_CRATEID_ERROR, @options.crateID)
             exit 1
         end
     end
@@ -364,7 +401,7 @@ class LetsCrate
       
             return parseResponse(response)
         else
-            printError("A crate ID is a 5 digit number. Use -A to list your crates's IDs.", crateID)
+            printError(STR_CRATEID_ERROR, crateID)
         end
     end
     
@@ -379,9 +416,9 @@ class LetsCrate
     def PRINTtestCredentials(hash)
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("success")
-            puts "The credentials are valid"
+            puts STR_VALID_CREDENTIALS
             else
-            printError("The credentials are invalid", "User:#{@options.username} Pass:#{@options.password}")
+            printError(STR_INVALID_CREDENTIALS, "User:#{@options.username} Pass:#{@options.password}")
         end
     end
     
@@ -419,7 +456,7 @@ class LetsCrate
                         printFile(file['name'], file['short_code'], file['id'])
                     end
                 else
-                    puts "* Crate is empty."
+                    puts STR_EMPTY_CRATE
                 end
                 puts "\n"
             end

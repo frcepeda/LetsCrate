@@ -34,9 +34,6 @@ TO DO
 
 * Add file searching
 * Allow using filenames where IDs are required
-* Implement checks on files and IDs to see if they're valid
-* Output more informative error messages
-* Fix formatting errors with long filenames
 
 License
 -------
