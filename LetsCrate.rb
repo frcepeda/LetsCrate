@@ -47,6 +47,7 @@ class App
         @options.actionCounter = 0     # this should always end up as 1, or else there's a problem with the script arguments.
         @options.action = nil    # this will be performed by the LetsCrate class
         @options.verbose = true    # if false, nothing will be printed to the screen.
+        @options.width = detect_terminal_size   # determine terminal's width
         
         opts = OptionParser.new
         
@@ -68,12 +69,12 @@ class App
         }
         
         opts.on( '-u', '--upload [Crate ID]', 'Upload files to crate with ID' ) { |upID|
-            if upID      # TO DO - add verification via regex
+            if upID[^\d{5}$] != nil      # TO DO - add verification via regex
                 @options.crateID = upID
                 @options.action = :uploadFile
                 @options.actionCounter += 1
             else
-                puts "A crate ID is a 5 digit number"
+                printError("A crate ID is a 5 digit number. Use -A to list your crates's IDs.", upID)
                 exit 1
             end
         }
@@ -153,6 +154,20 @@ class App
             puts opts   # displays help screen
             exit 0
         end
+        
+        # Print the errors.
+        
+        def printError(message, argument)
+            if !(@options.width.nil?)
+                puts "Error: #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
+                else
+                puts "Error: #{message}\t<#{argument}>"
+            end
+        end
+    end
+    
+    def detect_terminal_size
+        return `tput cols`.to_i    # returns terminal width in characters
     end
     
     def run
@@ -189,8 +204,6 @@ class LetsCrate
     end
     
     def run
-        @width = self.detect_terminal_size  # get terminal width
-        
         if @arguments.count > 0     # check if command requires extra arguments
             for argument in @arguments
                 response = self.send(@options.action, argument)    # response is aleady a parsed hash.
@@ -400,33 +413,27 @@ class LetsCrate
     # ------
     
     def printInfo(name, short_code, id)
-        if !(@width.nil?)
-            puts "#{name}%#{@width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %#s to align to the right.
+        if !(@options.width.nil?)
+            puts "#{name}%#{@options.width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %#s to align to the right.
         else
             puts "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"  # in case that the terminal width couldn't be obtained.
         end
     end
     
     def printFile(name, short_code, id)
-        if !(@width.nil?)
-            puts "* #{name}%#{@width-(name.length+2)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
+        if !(@options.width.nil?)
+            puts "* #{name}%#{@options.width-(name.length+2)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
             else
             puts "* #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
         end
     end
     
     def printError(message, argument)
-        if !(@width.nil?)
-            puts "Error: #{message}%#{@width-(message.length+7)}s" % "<#{argument}>"
+        if !(@options.width.nil?)
+            puts "Error: #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
         else
             puts "Error: #{message}\t<#{argument}>"
         end
-    end
-    
-    # ------
-    
-    def detect_terminal_size
-        return `tput cols`.to_i    # returns terminal width in characters
     end
 end
 
