@@ -34,6 +34,7 @@ require 'json'
 
 VERSION = "1.1"
 APIVERSION = "1"
+BaseURL = "https://api.letscrate.com/1/"
 
 # here start the modules
 
@@ -85,7 +86,7 @@ module Output
     end
     
     def truncateName(name, length)
-        return name[0..((length/2)-2).to_i]+"..."+name[-(((length/2)-1).to_i)..-1]
+        return name[0..((length/2)-2).truncate]+"..."+name[-(((length/2)-1).truncate)..-1]
     end
     
 end
@@ -276,7 +277,6 @@ class LetsCrate
         @options = options
         @arguments = arguments
         @argCounter = -1    # argument index is raised first thing on every method, and it needs to be 0 the first time it's used.
-        @BaseURL = https://api.letscrate.com/1/
     end
     
     def run
