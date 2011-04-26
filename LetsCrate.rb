@@ -34,7 +34,27 @@ require 'json'
 
 VERSION = "1.0.2"
 
+module Colors
+    # this allows using colors with ANSI escape codes
+    
+    def colorize(text, color_code)
+        "\e[#{color_code}m#{text}\e[0m"
+    end
+    
+    def red(text); colorize(text, 31); end
+    def green(text); colorize(text, 32); end
+    def yellow(text); colorize(text, 33); end
+    def blue(text); colorize(text, 34); end
+    def magenta(text); colorize(text, 35); end
+    def cyan(text); colorize(text, 36); end
+    def white(text); colorize(text, 37); end
+    
+    # here end the color codes
+end
+
 class App
+    
+    include Colors
     
     def initialize(argList)
         @arguments = argList      # store arguments in local variable
@@ -69,7 +89,7 @@ class App
         }
         
         opts.on( '-u', '--upload [Crate ID]', 'Upload files to crate with ID' ) { |upID|
-            if upID[^\d{5}$] != nil      # TO DO - add verification via regex
+            if upID[/^\d{5}$/] != nil      # TO DO - add verification via regex
                 @options.crateID = upID
                 @options.action = :uploadFile
                 @options.actionCounter += 1
@@ -139,30 +159,30 @@ class App
         # Errors:
         
         if @options.actionCounter > 1
-            puts "More than one action was selected. Please select only one action."
-            puts opts   # displays help screen
+            printError("More than one action was selected. Please select only one action.", "#{@options.actionCounter}")
+            puts "Use the -h flag for help, or read the README."
             exit 1
         end
         
         if (@options.username == nil || @options.password == nil) && @options.actionCounter != 0
-            puts "You need to supply a set of credentials to use the LetsCrate API."
-            puts opts   # displays help screen
+            printError("You need to an account to use the LetsCrate API.", "NoLoginError")
+            puts "Use the \"-l\" switch to specify your login credentials"
             exit 1
         end
         
         if @options.actionCounter == 0      # nothing was selected
-            puts opts   # displays help screen
+            puts opts
             exit 0
         end
-        
-        # Print the errors.
-        
-        def printError(message, argument)
-            if !(@options.width.nil?)
-                puts "Error: #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
-                else
-                puts "Error: #{message}\t<#{argument}>"
-            end
+    end
+    
+    # Print the errors.
+    
+    def printError(message, argument)
+        if !(@options.width.nil?)
+            puts red("Error:")+" #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
+            else
+            puts "Error: #{message}\t<#{argument}>"
         end
     end
     
@@ -181,21 +201,7 @@ end
 
 class LetsCrate
     
-    # this allows using colors with ANSI escape codes
-    
-    def colorize(text, color_code)
-        "\e[#{color_code}m#{text}\e[0m"
-    end
-    
-    def red(text); colorize(text, 31); end
-    def green(text); colorize(text, 32); end
-    def yellow(text); colorize(text, 33); end
-    def blue(text); colorize(text, 34); end
-    def magenta(text); colorize(text, 35); end
-    def cyan(text); colorize(text, 36); end
-    def white(text); colorize(text, 37); end
-    
-    # here ends the color codes
+    include Colors
     
     def initialize(options, arguments)
         @options = options
