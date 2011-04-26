@@ -32,10 +32,9 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.0.2"
+VERSION = "1.1"
 
-module Colors
-    # this allows using colors with ANSI escape codes
+module Colors      # this allows using colors with ANSI escape codes
     
     def colorize(text, color_code)
         "\e[#{color_code}m#{text}\e[0m"
@@ -48,13 +47,57 @@ module Colors
     def magenta(text); colorize(text, 35); end
     def cyan(text); colorize(text, 36); end
     def white(text); colorize(text, 37); end
+end
+
+module Output
     
-    # here end the color codes
+    def detect_terminal_size
+        return `tput cols`.to_i    # returns terminal width in characters
+    end
+    
+    def printError(message, argument)
+        if !(@options.width.nil?)
+            puts red("Error:")+" #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
+            else
+            puts red("Error:")+" #{message}\t<#{argument}>"
+        end
+    end
+    
+    def printInfo(name, short_code, id)
+        if !(@options.width.nil?)
+            puts "#{name}%#{@options.width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %#s to align to the right.
+            else
+            puts "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"  # in case that the terminal width couldn't be obtained.
+        end
+    end
+    
+    def printFile(name, short_code, id)
+        if !(@options.width.nil?)
+            puts "* #{name}%#{@options.width-(name.length+2)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
+            else
+            puts "* #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
+        end
+    end
+    
+end
+
+module IntegrityChecks
+    
+    def IDvalid?(id)
+        if !(id[/^\d{5}$/].nil?)  # regex checks for 5 continuous digits surrounded by start and end of string.
+            return true
+        else
+            return false
+        end
+    end
+    
 end
 
 class App
     
     include Colors
+    include Output
+    include IntegrityChecks
     
     def initialize(argList)
         @arguments = argList      # store arguments in local variable
@@ -89,7 +132,7 @@ class App
         }
         
         opts.on( '-u', '--upload [Crate ID]', 'Upload files to crate with ID' ) { |upID|
-            if upID[/^\d{5}$/] != nil      # TO DO - add verification via regex
+            if IDvalid?(upID)
                 @options.crateID = upID
                 @options.action = :uploadFile
                 @options.actionCounter += 1
@@ -176,20 +219,6 @@ class App
         end
     end
     
-    # Print the errors.
-    
-    def printError(message, argument)
-        if !(@options.width.nil?)
-            puts red("Error:")+" #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
-            else
-            puts "Error: #{message}\t<#{argument}>"
-        end
-    end
-    
-    def detect_terminal_size
-        return `tput cols`.to_i    # returns terminal width in characters
-    end
-    
     def run
         
         crate = LetsCrate.new(@options, @arguments)
@@ -202,11 +231,13 @@ end
 class LetsCrate
     
     include Colors
+    include Output
+    include IntegrityChecks
     
     def initialize(options, arguments)
         @options = options
         @arguments = arguments
-        @argCounter = 0
+        @argCounter = -1    # argument index is raised first thing on every method, and it needs to be 0 the first time it's used.
     end
     
     def run
@@ -233,7 +264,8 @@ class LetsCrate
     end
     
     def uploadFile(file)
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
+        if IDvalid?(@options.crateID)
+            response = Typhoeus::Request.post("https://api.letscrate.com/1/files/upload.json",
                                           :params => {
                                             :file => File.open(file ,"r"),
                                             :crate_id => @options.crateID
@@ -242,16 +274,24 @@ class LetsCrate
                                           :password => @options.password,
                                           )
         
-        return parseResponse(response)
+            return parseResponse(response)
+        else
+            printError("A crate ID is a 5 digit number. Use -A to list your crates's IDs.", @options.crateID)
+            exit 1
+        end
     end
     
     def deleteFile(fileID)
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/destroy/#{fileID}.json",
+        if IDvalid?(fileID)
+            response = Typhoeus::Request.post("https://api.letscrate.com/1/files/destroy/#{fileID}.json",
                                                 :username => @options.username,
                                                 :password => @options.password,
                                                 )
             
-        return parseResponse(response)
+            return parseResponse(response)
+        else
+            printError("A file ID is a 5 digit number. Use -a to list your files's IDs.", fileID)
+        end
     end
     
     def listFiles
@@ -264,12 +304,17 @@ class LetsCrate
     end
     
     def listFileID(fileID)
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/files/show/#{fileID}.json",
+        if IDvalid?(fileID)
+            response = Typhoeus::Request.post("https://api.letscrate.com/1/files/show/#{fileID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
         
-        return parseResponse(response)
+            return parseResponse(response)
+        else
+            printError("A file ID is a 5 digit number. Use -a to list your files's IDs.", fileID)
+        end
+            
     end
     
     def createCrate(name)
@@ -294,7 +339,8 @@ class LetsCrate
     end
     
     def renameCrate(name)
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
+        if IDvalid?(@options.crateID)
+            response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
                                                  :params => {
                                                  :name => name
                                                  },
@@ -302,16 +348,24 @@ class LetsCrate
                                                  :password => @options.password,
                                                  )
         
-        return parseResponse(response)
+            return parseResponse(response)
+        else
+            printError("A crate ID is a 5 digit number. Use -A to list your crates's IDs.", @options.crateID)
+            exit 1
+        end
     end
     
     def deleteCrate(crateID)
-        response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/destroy/#{crateID}.json",
+        if IDvalid?(crateID)
+            response = Typhoeus::Request.post("https://api.letscrate.com/1/crates/destroy/#{crateID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
       
-        return parseResponse(response)
+            return parseResponse(response)
+        else
+            printError("A crate ID is a 5 digit number. Use -A to list your crates's IDs.", crateID)
+        end
     end
     
     # ------
@@ -323,6 +377,7 @@ class LetsCrate
     # ------
     
     def PRINTtestCredentials(hash)
+        return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("success")
             puts "The credentials are valid"
             else
@@ -331,24 +386,28 @@ class LetsCrate
     end
     
     def PRINTuploadFile(hash)
+        @argCounter += 1
+        return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
             printInfo(File.basename(@arguments[@argCounter]), hash['file']['short_code'], hash['file']['id'])
         end
-        @argCounter += 1
     end
     
     def PRINTdeleteFile(hash)
+        @argCounter += 1
+        return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
             puts "#{@arguments[@argCounter]} deleted"
         end
-        @argCounter += 1
     end
     
     def PRINTlistFiles(hash)
+        @argCounter += 1
+        return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
                 printError(hash['message'], @arguments[@argCounter])
         else
@@ -365,28 +424,31 @@ class LetsCrate
                 puts "\n"
             end
         end
-        @argCounter += 1
     end
     
     def PRINTlistFileID(hash)
+        @argCounter += 1
+        return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
             printInfo(hash['item']['name'], hash['item']['short_code'], hash['item']['id'])
         end
-        @argCounter += 1
     end
     
     def PRINTcreateCrate(hash)
+        @argCounter += 1
+        return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
             printInfo(hash['crate']['name'], hash['crate']['short_code'], hash['crate']['id'])
         end
-        @argCounter += 1
     end
     
     def PRINTlistCrates(hash)
+        @argCounter += 1
+        return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
@@ -395,50 +457,25 @@ class LetsCrate
                 printInfo(crate['name'], crate['short_code'], crate['id'])
             end
         end
-        @argCounter += 1
     end
     
     def PRINTrenameCrate(hash)
-       if hash.values.include?("failure")
+        @argCounter += 1
+        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
             puts "renamed "+hash['crate']['id']+" to "+hash['crate']['name']
         end
-        @argCounter += 1
     end
     
     def PRINTdeleteCrate(hash)
+        @argCounter += 1
+        return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
             puts "#{@arguments[@argCounter]} deleted"
-        end
-        @argCounter += 1
-    end
-    
-    # ------
-    
-    def printInfo(name, short_code, id)
-        if !(@options.width.nil?)
-            puts "#{name}%#{@options.width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %#s to align to the right.
-        else
-            puts "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"  # in case that the terminal width couldn't be obtained.
-        end
-    end
-    
-    def printFile(name, short_code, id)
-        if !(@options.width.nil?)
-            puts "* #{name}%#{@options.width-(name.length+2)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
-            else
-            puts "* #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
-        end
-    end
-    
-    def printError(message, argument)
-        if !(@options.width.nil?)
-            puts "Error: #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
-        else
-            puts "Error: #{message}\t<#{argument}>"
         end
     end
 end
