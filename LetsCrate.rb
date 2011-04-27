@@ -200,7 +200,7 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '-s', '--search', 'Search for file with name' ) {
+        opts.on( '-s', '--search', 'Search for files with names' ) {
             @options.action = :searchFile
             @options.actionCounter += 1
         }
@@ -215,7 +215,7 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '-S', '--searchcrates', 'Search for crate with name' ) {
+        opts.on( '-S', '--searchcrates', 'Search for crates with names' ) {
             @options.action = :searchCrate
             @options.actionCounter += 1
         }

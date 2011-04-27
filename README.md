@@ -11,17 +11,17 @@ Usage
 -----
 
     Usage: LetsCrate.rb <-l username:password> [options] file1 file2 ...
-    or: LetsCrate.rb <-l username:password> [options] id1 id2 ...
+       or: LetsCrate.rb <-l username:password> [options] id1 id2 ...
 
     -l, --login [username:password]  Login with this username and password
     -u, --upload [Crate ID]          Upload files to crate with ID
     -d, --delete                     Delete files with IDs
     -a, --list                       List all files by crate
     -i, --id                         Show files with IDs
-    -s, --search                     Search for file with name
+    -s, --search                     Search for files with names
     -n, --new                        Create new crates with names
     -A, --listcrates                 List all crates
-    -S, --searchcrates               Search for crate with name
+    -S, --searchcrates               Search for crates with names
     -r, --rename [Crate ID]          Rename crate to name
     -D, --deletecrate                Delete crates with IDs
     -t, --test                       Only test the credentials
