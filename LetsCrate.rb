@@ -94,10 +94,11 @@ end
 module IntegrityChecks
     
     def IDvalid?(id)
-        if !(id[/^\d{5}$/].nil?)  # regex checks for 5 continuous digits surrounded by start and end of string.
-            return true
-        else
+        test = id.to_s
+        if test[/^\d{5}$/].nil?  # regex checks for 5 continuous digits surrounded by start and end of string.
             return false
+        else
+            return true
         end
     end
     
@@ -130,7 +131,7 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_NO_CRATES_FOUND = "No crates were found that match that name."
     
     STR_TOO_MANY_CRATES = "More than 1 crate matched that name. Please make your query more specific."
-    STR_TOO_MANY_CRATES = "More than 1 file matched that name. Please make your query more specific."
+    STR_TOO_MANY_FILES = "More than 1 file matched that name. Please make your query more specific."
 end
 
 module Everything    # I got tired of manually adding all modules.
@@ -178,14 +179,9 @@ class App
         }
         
         opts.on( '-u', '--upload [Crate ID]', 'Upload files to crate with ID' ) { |upID|
-            if IDvalid?(upID)
-                @options.crateID = upID
-                @options.action = :uploadFile
-                @options.actionCounter += 1
-            else
-                printError(STR_CRATEID_ERROR, upID)
-                exit 1
-            end
+            @options.crateID = upID
+            @options.action = :uploadFile
+            @options.actionCounter += 1
         }
         
         opts.on( '-d', '--delete', 'Delete files with IDs' ) {
@@ -208,7 +204,7 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '-n', '--new', 'Create new crates with names' ) {
+        opts.on( '-N', '--new', 'Create new crates with names' ) {
             @options.action = :createCrate
             @options.actionCounter += 1
         }
@@ -295,6 +291,14 @@ class LetsCrate
     end
     
     def run
+        if !(@options.crateID.nil?)    #  Check if crateID is used in this process.
+            if IDvalid?(@options.crateID)
+                # YAY! Do nothing.
+            else
+                @options.crateID = getIDForCrate(@options.crateID)
+            end
+        end
+        
         if @arguments.count > 0     # check if command requires extra arguments
             for argument in @arguments
                 response = self.send(@options.action, argument)    # response is a parsed hash or an array of hashes.
@@ -374,8 +378,8 @@ class LetsCrate
     def searchFile(name)
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedFiles = []
-        @crates = listFiles if @crates.nil?   # do not query the server each time a search is made.
-        allCrates = @crates['crates']
+        @files = listFiles if @crates.nil?   # do not query the server each time a search is made.
+        allCrates = @files['crates']
         for crate in allCrates
             if crate['files']      # test if crate is empty
                 for file in crate['files']
@@ -389,8 +393,8 @@ class LetsCrate
     def searchCrate(name)
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedCrates = []
-        @crates = listFiles if @crates.nil?   # do not query the server each time a search is made.
-        allCrates = @crates['crates']
+        @files = listCrates if @crates.nil?   # do not query the server each time a search is made.
+        allCrates = @files['crates']
         for crate in allCrates
             matchedCrates << crate if regex.match(crate['name']) != nil
         end
@@ -571,7 +575,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts "renamed "+hash['crate']['id']+" to "+hash['crate']['name']
+            puts "renamed "+hash['crate']['id'].to_s+" to "+hash['crate']['name']
         end
     end
     
@@ -588,48 +592,48 @@ class LetsCrate
     # Map names to IDs
     
     def getIDsForCrates(array)
-        IDs = []
+        ids = []
         for name in array
             crates = searchCrate(name) if @crates.nil?
             for crate in crates
-                IDs << crate['id']
+                ids << crate['id'].to_s
             end
         end
-        return IDs
+        return ids
     end
     
     def getIDsForFiles(array)
-        IDs = []
+        ids = []
         for name in array
             files = searchFile(name)
             for file in files
-                IDs << file['id']
+                ids << file['id'].to_s
             end
         end
-        return IDs
+        return ids
     end
     
     def getIDForCrate(name)
-        ID = getIDsForCrates([name])
-        if ID.count == 1
-            return ID
-        elsif ID.count == 0
+        id = getIDsForCrates([name])
+        if id.count == 1
+            return id[0]
+        elsif id.count == 0
             printError(STR_NO_CRATES_FOUND, name)
             exit 1
-        elsif ID.count > 1
+        elsif id.count > 1
             printError(STR_TOO_MANY_CRATES, name)
             exit 1
         end
     end
     
     def getIDForFile(name)
-        ID = getIDsForFiles([name])
-        if ID.count == 1
-            return ID
-        elsif ID.count == 0
+        id = getIDsForFiles([name])
+        if id.count == 1
+            return id[0]
+        elsif id.count == 0
             printError(STR_NO_FILES_FOUND, name)
             exit 1
-        elsif ID.count > 1
+        elsif id.count > 1
             printError(STR_TOO_MANY_FILES, name)
             exit 1
         end
