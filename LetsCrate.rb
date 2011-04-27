@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.1"
+VERSION = "1.2"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -126,6 +126,8 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_EMPTY_CRATE = "* Crate is empty."
     
+    STR_NO_FILES_FOUND = "No files were found that match that name."
+    STR_NO_CRATES_FOUND = "No crates were found that match that name."
 end
 
 module Everything    # I got tired of manually adding all modules.
@@ -198,6 +200,11 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on( '-s', '--search', 'Search for file with name' ) {
+            @options.action = :searchFile
+            @options.actionCounter += 1
+        }
+        
         opts.on( '-n', '--new', 'Create new crates with names' ) {
             @options.action = :createCrate
             @options.actionCounter += 1
@@ -205,6 +212,11 @@ class App
         
         opts.on( '-A', '--listcrates', 'List all crates' ) {
             @options.action = :listCrates
+            @options.actionCounter += 1
+        }
+        
+        opts.on( '-S', '--searchcrates', 'Search for crate with name' ) {
+            @options.action = :searchCrate
             @options.actionCounter += 1
         }
         
@@ -282,11 +294,11 @@ class LetsCrate
     def run
         if @arguments.count > 0     # check if command requires extra arguments
             for argument in @arguments
-                response = self.send(@options.action, argument)    # response is aleady a parsed hash.
+                response = self.send(@options.action, argument)    # response is a parsed hash or an array of hashes.
                 self.send("PRINT"+@options.action.to_s, response) if @options.verbose
             end
         else
-            response = self.send(@options.action)    # response is aleady a parsed hash.
+            response = self.send(@options.action)    # response is a parsed hash or an array of hashes.
             self.send("PRINT"+@options.action.to_s, response) if @options.verbose
         end
     end
@@ -354,6 +366,32 @@ class LetsCrate
             printError(STR_FILEID_ERROR, fileID)
         end
             
+    end
+    
+    def searchFile(name)
+        regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
+        matchedFiles = []
+        response = listFiles   # Get all files
+        allCrates = response['crates']
+        for crate in allCrates
+            if crate['files']      # test if crate is empty
+                for file in crate['files']
+                    matchedFiles << file if regex.match(file['name']) != nil
+                end
+            end
+        end
+        return matchedFiles
+    end
+    
+    def searchCrate(name)
+        regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
+        matchedCrates = []
+        response = listFiles   # Get all files
+        allCrates = response['crates']
+        for crate in allCrates
+            matchedCrates << crate if regex.match(crate['name']) != nil
+        end
+        return matchedCrates
     end
     
     def createCrate(name)
@@ -462,6 +500,32 @@ class LetsCrate
                 end
                 puts "\n"
             end
+        end
+    end
+        
+    def PRINTsearchFile(array)
+        @argCounter += 1
+        if array.empty?
+            printError(STR_NO_FILES_FOUND, @arguments[@argCounter])
+        else
+            puts green(@arguments[@argCounter]+":")  # print header for matched files
+            for file in array
+                printInfo(file['name'], file['short_code'], file['id'])
+            end
+            puts "\n"
+        end
+    end
+    
+    def PRINTsearchCrate(array)
+        @argCounter += 1
+        if array.empty?
+            printError(STR_NO_CRATES_FOUND, @arguments[@argCounter])
+        else
+            puts green(@arguments[@argCounter]+":")   # print header for matched files
+            for crate in array
+                printInfo(crate['name'], crate['short_code'], crate['id'])
+            end
+            puts "\n"
         end
     end
     

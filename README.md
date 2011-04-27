@@ -2,6 +2,7 @@ LetsCrate
 ---------
 
 This is an unofficial command line client for [LetsCrate][] written in Ruby.
+Please let me know what you think! You can reach me at frcepeda AT gmail DOT com
 
 [LetsCrate]: http://letscrate.com
 
@@ -16,23 +17,25 @@ Usage
     -d, --delete                     Delete files with IDs
     -a, --list                       List all files by crate
     -i, --id                         Show files with IDs
+    -s, --search                     Search for file with name
     -n, --new                        Create new crates with names
     -A, --listcrates                 List all crates
+    -S, --searchcrates               Search for crate with name
     -r, --rename [Crate ID]          Rename crate to name
     -D, --deletecrate                Delete crates with IDs
     -t, --test                       Only test the credentials
     -q, --quiet                      Do not output anything to the terminal
     -v, --version                    Output version
-    -h, --help                       Display help screen
+    -h, --help                       Display this screen
 
 An ID is a 5 digit identifier used internally by LetsCrate.
 To know the ID of your files, use the "-a" option to list them with their
 respective URLs and IDs.
+You can also use regular expressions whenever a name is required (currently only the search option).
 
 TO DO
 -----
 
-* Add file searching
 * Allow using filenames where IDs are required
 
 License
