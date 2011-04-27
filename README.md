@@ -15,8 +15,7 @@ colon.
 
 Example: 
 
-    -l username:password
-
+    -l username:password  
     -l "username:password"
     
 After that, you can select an action from the list below and use the command normally.
@@ -29,8 +28,7 @@ will be treated as a regular expression. The search option uses regular expressi
 by default.
 
 An ID is a 5 digit identifier used internally by Let's Crate. 
-To know the ID of your files, use the "-a" option to list them with their respective URLs and IDs.
-
+To know the ID of your files, use the "-a" option to list them with their respective URLs and IDs.  
 Generally, you don't need to know the ID of a file, but if you do, you can use it
 instead of the name of the files/crates (it's faster).
 
