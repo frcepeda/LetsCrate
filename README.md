@@ -14,8 +14,8 @@ Every command needs the "-l" switch, with the username and password separated by
 colon.
 
 Example: 
-    -l username:password
-    -l "username:password"
+`    -l username:password
+    -l "username:password"`
     
 After that, you can select an action from the list below and use the command normally.
 
