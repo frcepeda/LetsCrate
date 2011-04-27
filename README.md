@@ -1,46 +1,78 @@
 LetsCrate
 ---------
 
-This is an unofficial command line client for [LetsCrate][] written in Ruby.
+This is an unofficial command line client for [LetsCrate](http://letscrate.com) written in Ruby.
 
 Please let me know what you think! You can reach me at frcepeda AT gmail DOT com
 
-[LetsCrate]: http://letscrate.com
+Quick start manual
+------------------
+
+To use this program, you need to create an account at [LetsCrate](http://letscrate.com).
+
+Every command needs the "-l" switch, with the username and password separated by a
+colon.
+
+Example: 
+    -l username:password
+    -l "username:password"
+    
+After that, you can select an action from the list below and use the command normally.
+
+You can use multiple files, names or crates in the commands whose explanations
+are in plural.
+
+If you use the --regexp function with the commands marked with an asterisk, every argument
+will be treated as a regular expression. The search option uses regular expressions
+by default.
+
+An ID is a 5 digit identifier used internally by LetsCrate. 
+To know the ID of your files, use the "-a" option to list them with their respective URLs and IDs.
+
+Generally, you don't need to know the ID of a file, but if you do, you can use it
+instead of the name of the files/crates (it's faster).
 
 Usage
 -----
 
     Usage: LetsCrate.rb <-l username:password> [options] file1 file2 ...
-       or: LetsCrate.rb <-l username:password> [options] id1 id2 ...
+       or: LetsCrate.rb <-l username:password> [options] name1 name2 ...
 
+	Mandatory options:
     -l, --login [username:password]  Login with this username and password
-    -u, --upload [Crate ID]          Upload files to crate with ID
-    -d, --delete                     Delete files with IDs
+
+	File functions:
+    -u, --upload [Crate name]        Upload files to crate
+    -d, --delete                     Delete files with names *
     -a, --list                       List all files by crate
-    -i, --id                         Show files with IDs
     -s, --search                     Search for files with names
-    -n, --new                        Create new crates with names
+    -i, --id                         Show files with IDs
+
+	Crate functions:
+    -N, --newcrate                   Create new crates with names
     -A, --listcrates                 List all crates
     -S, --searchcrates               Search for crates with names
-    -r, --rename [Crate ID]          Rename crate to name
-    -D, --deletecrate                Delete crates with IDs
+    -R, --renamecrate [Crate name]   Rename crate to name
+    -D, --deletecrate                Delete crates with names *
+
+	Misc. options:
+    -r, --regexp                     Treat all names as regular expressions
     -t, --test                       Only test the credentials
-    -q, --quiet                      Do not output anything to the terminal
     -v, --version                    Output version
     -h, --help                       Display this screen
 
-An ID is a 5 digit identifier used internally by LetsCrate.
-
-To know the ID of your files, use the "-a" option to list them with their
-respective URLs and IDs.
-
-You can also use regular expressions whenever a name is required 
-(currently only the search option).
 
 TO DO
 -----
 
-* Allow using filenames where IDs are required
+* Display the names of renamed or deleted files/crates instead of their IDs.
+* Use a configuration file to avoid typing the login credentials each time the command is run.
+* Implement verbose and quiet options.
+
+BUGS
+----
+
+* None yet, but please open a ticket (or contact me) if you find one.
 
 License
 -------

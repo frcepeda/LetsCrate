@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.2"
+VERSION = "1.3"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -102,12 +102,26 @@ module IntegrityChecks
         end
     end
     
+    def IDsvalid?(ids)
+        results = []
+        
+        for id in ids
+            results << IDvalid?(id)
+        end
+        
+        unless results.include?(false)
+            return true
+        else
+            return false
+        end
+    end
+    
 end
 
 module Strings   # this module contains almost all the strings used in the program
     
     STR_BANNER = "Usage: #{File.basename(__FILE__)} <-l username:password> [options] file1 file2 ...\n"+ 
-    "   or: #{File.basename(__FILE__)} <-l username:password> [options] id1 id2 ...\n"+"\n"
+    "   or: #{File.basename(__FILE__)} <-l username:password> [options] name1 name2 ..."
     
     STR_VERSION = "LetsCrate v#{VERSION} (API Version #{APIVERSION}) by Freddy Roman <frcepeda@gmail.com>"
     
@@ -159,10 +173,16 @@ class App
         @options.action = nil    # this will be performed by the LetsCrate class
         @options.verbose = true    # if false, nothing will be printed to the screen.
         @options.width = detect_terminal_size   # determine terminal's width
+        @options.usesFilesIDs = false    # this triggers ID checks on the arguments if set to true
+        @options.usesCratesIDs = false   # same as above but with crates
+        @options.regex = false    # if set to true, all names are treated as regular expressions
         
         opts = OptionParser.new
         
         opts.banner = STR_BANNER
+        
+        opts.separator ""
+        opts.separator "Mandatory options:"
         
         opts.on( '-l', '--login [username:password]', 'Login with this username and password' ) { |login|
             
@@ -178,14 +198,18 @@ class App
             end
         }
         
-        opts.on( '-u', '--upload [Crate ID]', 'Upload files to crate with ID' ) { |upID|
+        opts.separator ""
+        opts.separator "File functions:"
+        
+        opts.on( '-u', '--upload [Crate name]', 'Upload files to crate' ) { |upID|
             @options.crateID = upID
             @options.action = :uploadFile
             @options.actionCounter += 1
         }
         
-        opts.on( '-d', '--delete', 'Delete files with IDs' ) {
+        opts.on( '-d', '--delete', 'Delete files with names *' ) {
             @options.action = :deleteFile
+            @options.usesFilesIDs = true
             @options.actionCounter += 1
         }
         
@@ -194,17 +218,21 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '-i', '--id', 'Show files with IDs' ) {
-            @options.action = :listFileID
-            @options.actionCounter += 1
-        }
-        
         opts.on( '-s', '--search', 'Search for files with names' ) {
             @options.action = :searchFile
             @options.actionCounter += 1
         }
         
-        opts.on( '-N', '--new', 'Create new crates with names' ) {
+        opts.on( '-i', '--id', 'Show files with IDs' ) {
+            @options.action = :listFileID
+            #this should have a @options.usesFilesIDs = true, but the command is meaningless without an ID
+            @options.actionCounter += 1
+        }
+        
+        opts.separator ""
+        opts.separator "Crate functions:"
+        
+        opts.on( '-N', '--newcrate', 'Create new crates with names' ) {
             @options.action = :createCrate
             @options.actionCounter += 1
         }
@@ -219,24 +247,28 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '-r', '--rename [Crate ID]', 'Rename crate to name' ) { |crateID|
+        opts.on( '-R', '--renamecrate [Crate name]', 'Rename crate to name' ) { |crateID|
             @options.crateID = crateID
             @options.action = :renameCrate
             @options.actionCounter += 1
         }
         
-        opts.on( '-D', '--deletecrate', 'Delete crates with IDs' ) {
+        opts.on( '-D', '--deletecrate', 'Delete crates with names *' ) {
             @options.action = :deleteCrate
+            @options.usesCratesIDs = true
             @options.actionCounter += 1
+        }
+        
+        opts.separator ""
+        opts.separator "Misc. options:"
+        
+        opts.on( '-r', '--regexp', 'Treat all names as regular expressions' ) {
+            @options.regex = true
         }
         
         opts.on( '-t', '--test', 'Only test the credentials' ) {
             @options.action = :testCredentials
             @options.actionCounter += 1
-        }
-        
-        opts.on( '-q', '--quiet', 'Do not output anything to the terminal' ) {
-            @options.verbose = false
         }
         
         opts.on( '-v', '--version', 'Output version' ) {
@@ -291,6 +323,7 @@ class LetsCrate
     end
     
     def run
+        
         if !(@options.crateID.nil?)    #  Check if crateID is used in this process.
             if IDvalid?(@options.crateID)
                 # YAY! Do nothing.
@@ -299,7 +332,34 @@ class LetsCrate
             end
         end
         
+        if @options.usesCratesIDs
+            
+            if IDsvalid?(@arguments)   #  that means I have to parse all the arguments.
+                # YAY! Do nothing.
+            else
+                if @options.regex
+                    @arguments = getIDsForCrates!(@arguments)
+                else
+                    @arguments = getIDsForCrates(@arguments)
+                end
+            end
+        end
+        
+        if @options.usesFilesIDs
+            
+            if IDsvalid?(@arguments)   #  that means I have to parse all the arguments.
+                # YAY! Do nothing.
+            else
+                if @options.regex
+                    @arguments = getIDsForFiles!(@arguments)
+                else
+                    @arguments = getIDsForFiles(@arguments)
+                end
+            end
+        end
+        
         if @arguments.count > 0     # check if command requires extra arguments
+            
             for argument in @arguments
                 response = self.send(@options.action, argument)    # response is a parsed hash or an array of hashes.
                 self.send("PRINT"+@options.action.to_s, response) if @options.verbose
@@ -594,6 +654,49 @@ class LetsCrate
     def getIDsForCrates(array)
         ids = []
         for name in array
+            next if IDvalid?(name)
+            crates = searchCrate(name) if @crates.nil?
+            for crate in crates
+                ids << crate['id'].to_s
+            end
+        end
+        
+        if ids.count == array.count
+            return ids
+        elsif ids.count == 0
+            printError(STR_NO_CRATES_FOUND, name)
+            exit 1
+        elsif ids.count > array.count
+            printError(STR_TOO_MANY_CRATES, name)
+            exit 1
+        end
+    end
+    
+    def getIDsForFiles(array)
+        ids = []
+        for name in array
+            next if IDvalid?(name)
+            files = searchFile(name)
+            for file in files
+                ids << file['id'].to_s
+            end
+        end
+        
+        if ids.count == array.count
+            return ids
+        elsif ids.count == 0
+            printError(STR_NO_FILES_FOUND, name)
+            exit 1
+        elsif ids.count > array.count
+            printError(STR_TOO_MANY_FILES, name)
+            exit 1
+        end
+    end
+    
+    def getIDsForCrates!(array)  # these methods return ALL the matches for all the IDs. Used with --regexp
+        ids = []
+        for name in array
+            next if IDvalid?(name)
             crates = searchCrate(name) if @crates.nil?
             for crate in crates
                 ids << crate['id'].to_s
@@ -602,9 +705,10 @@ class LetsCrate
         return ids
     end
     
-    def getIDsForFiles(array)
+    def getIDsForFiles!(array)  # these methods return ALL the matches for all the IDs. Used with --regexp
         ids = []
         for name in array
+            next if IDvalid?(name)
             files = searchFile(name)
             for file in files
                 ids << file['id'].to_s
@@ -637,14 +741,6 @@ class LetsCrate
             printError(STR_TOO_MANY_FILES, name)
             exit 1
         end
-    end
-    
-    def getIDsForCrate(name)
-        return getIDsForCrates([name])
-    end
-    
-    def getIDsForFile(name)
-        return getIDsForFiles([name])
     end
 end
 
