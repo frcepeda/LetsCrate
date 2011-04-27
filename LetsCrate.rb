@@ -125,9 +125,12 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_INVALID_CREDENTIALS = "The credentials are invalid"
     
     STR_EMPTY_CRATE = "* Crate is empty."
-    
+
     STR_NO_FILES_FOUND = "No files were found that match that name."
     STR_NO_CRATES_FOUND = "No crates were found that match that name."
+    
+    STR_TOO_MANY_CRATES = "More than 1 crate matched that name. Please make your query more specific."
+    STR_TOO_MANY_CRATES = "More than 1 file matched that name. Please make your query more specific."
 end
 
 module Everything    # I got tired of manually adding all modules.
@@ -371,8 +374,8 @@ class LetsCrate
     def searchFile(name)
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedFiles = []
-        response = listFiles   # Get all files
-        allCrates = response['crates']
+        @crates = listFiles if @crates.nil?   # do not query the server each time a search is made.
+        allCrates = @crates['crates']
         for crate in allCrates
             if crate['files']      # test if crate is empty
                 for file in crate['files']
@@ -386,8 +389,8 @@ class LetsCrate
     def searchCrate(name)
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedCrates = []
-        response = listFiles   # Get all files
-        allCrates = response['crates']
+        @crates = listFiles if @crates.nil?   # do not query the server each time a search is made.
+        allCrates = @crates['crates']
         for crate in allCrates
             matchedCrates << crate if regex.match(crate['name']) != nil
         end
@@ -580,6 +583,64 @@ class LetsCrate
         else
             puts "#{@arguments[@argCounter]} deleted"
         end
+    end
+    
+    # Map names to IDs
+    
+    def getIDsForCrates(array)
+        IDs = []
+        for name in array
+            crates = searchCrate(name) if @crates.nil?
+            for crate in crates
+                IDs << crate['id']
+            end
+        end
+        return IDs
+    end
+    
+    def getIDsForFiles(array)
+        IDs = []
+        for name in array
+            files = searchFile(name)
+            for file in files
+                IDs << file['id']
+            end
+        end
+        return IDs
+    end
+    
+    def getIDForCrate(name)
+        ID = getIDsForCrates([name])
+        if ID.count == 1
+            return ID
+        elsif ID.count == 0
+            printError(STR_NO_CRATES_FOUND, name)
+            exit 1
+        elsif ID.count > 1
+            printError(STR_TOO_MANY_CRATES, name)
+            exit 1
+        end
+    end
+    
+    def getIDForFile(name)
+        ID = getIDsForFiles([name])
+        if ID.count == 1
+            return ID
+        elsif ID.count == 0
+            printError(STR_NO_FILES_FOUND, name)
+            exit 1
+        elsif ID.count > 1
+            printError(STR_TOO_MANY_FILES, name)
+            exit 1
+        end
+    end
+    
+    def getIDsForCrate(name)
+        return getIDsForCrates([name])
+    end
+    
+    def getIDsForFile(name)
+        return getIDsForFiles([name])
     end
 end
 
