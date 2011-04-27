@@ -182,7 +182,7 @@ class App
         opts.banner = STR_BANNER
         
         opts.separator ""
-        opts.separator "Mandatory options:"
+        opts.separator "Mandatory arguments:"
         
         opts.on( '-l', '--login [username:password]', 'Login with this username and password' ) { |login|
             

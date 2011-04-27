@@ -38,7 +38,7 @@ Usage
     Usage: LetsCrate.rb <-l username:password> [options] file1 file2 ...
        or: LetsCrate.rb <-l username:password> [options] name1 name2 ...
 
-	Mandatory options:
+	Mandatory arguments:
     -l, --login [username:password]  Login with this username and password
 
 	File functions:
@@ -71,7 +71,7 @@ TO DO
 BUGS
 ----
 
-* None yet, but please open a ticket (or contact me) if you find one.
+* None yet, but please open a ticket (or email me) if you find one.
 
 License
 -------
