@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.4"
+VERSION = "1.4.1"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -89,7 +89,7 @@ module Output
         return name[0..((length/2)-2).truncate]+"..."+name[-(((length/2)-1).truncate)..-1]
     end
     
-    def echo(argument)
+    def echo(argument)    #  this behaves exactly like puts, unless quiet is on. Use for all output messages.
         puts argument unless @options.quiet
     end
     
@@ -150,6 +150,9 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_TOO_MANY_CRATES = "More than 1 crate matched that name. Please make your query more specific."
     STR_TOO_MANY_FILES = "More than 1 file matched that name. Please make your query more specific."
+    
+    STR_DELETED = "%s deleted"
+    STR_RENAMED = "Renamed %s to %s"
 end
 
 module Everything    # I got tired of manually adding all modules.
@@ -557,7 +560,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            echo "#{@prevNames[@argCounter]} deleted"
+            echo STR_DELETED % [@prevNames[@argCounter]]
         end
     end
     
@@ -647,7 +650,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            echo "renamed "+@prevNames[0]+" to "+hash['crate']['name']   # using 0 as magic number because this only uses one argument always.
+            echo STR_RENAMED % [@prevNames[0], hash['crate']['name']]   # using 0 as magic number because this only uses one argument always.
         end
     end
     
@@ -657,7 +660,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            echo "%s deleted" % [@prevNames[@argCounter]]
+            echo STR_DELETED % [@prevNames[@argCounter]]
         end
     end
     
