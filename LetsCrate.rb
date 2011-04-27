@@ -70,23 +70,27 @@ module Output
     def printInfo(name, short_code, id)
         name = truncateName(name, @options.width-35) if name.length > @options.width-35
         if !(@options.width.nil?)
-            puts "#{name}%#{@options.width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %#s to align to the right.
+            echo "#{name}%#{@options.width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %#s to align to the right.
             else
-            puts "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"  # in case that the terminal width couldn't be obtained.
+            echo "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"  # in case that the terminal width couldn't be obtained.
         end
     end
     
     def printFile(name, short_code, id)
         name = truncateName(name, @options.width-37) if name.length > @options.width-37
         if !(@options.width.nil?)
-            puts "* #{name}%#{@options.width-(name.length+2)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
+            echo "* #{name}%#{@options.width-(name.length+2)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
             else
-            puts "* #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
+            echo "* #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
         end
     end
     
     def truncateName(name, length)
         return name[0..((length/2)-2).truncate]+"..."+name[-(((length/2)-1).truncate)..-1]
+    end
+    
+    def echo(argument)
+        puts argument unless @options.quiet
     end
     
 end
@@ -171,7 +175,7 @@ class App
         @options = OpenStruct.new    # all the arguments will be parsed into this openstruct
         @options.actionCounter = 0     # this should always end up as 1, or else there's a problem with the script arguments.
         @options.action = nil    # this will be performed by the LetsCrate class
-        @options.verbose = true    # if false, nothing will be printed to the screen.
+        @options.quiet = false    # if true, nothing will be printed to the screen. (aside from errors)
         @options.width = detect_terminal_size   # determine terminal's width
         @options.usesFilesIDs = false    # this triggers ID checks on the arguments if set to true
         @options.usesCratesIDs = false   # same as above but with crates
@@ -271,6 +275,10 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on( '-q', '--quiet', 'Treat all names as regular expressions' ) {
+            @options.quiet = true
+        }
+        
         opts.on( '-v', '--version', 'Output version' ) {
             puts STR_VERSION
             exit 0
@@ -363,11 +371,11 @@ class LetsCrate
             
             for argument in @arguments
                 response = self.send(@options.action, argument)    # response is a parsed hash or an array of hashes.
-                self.send("PRINT"+@options.action.to_s, response) if @options.verbose
+                self.send("PRINT"+@options.action.to_s, response)
             end
         else
             response = self.send(@options.action)    # response is a parsed hash or an array of hashes.
-            self.send("PRINT"+@options.action.to_s, response) if @options.verbose
+            self.send("PRINT"+@options.action.to_s, response)
         end
     end
     
@@ -527,7 +535,7 @@ class LetsCrate
     def PRINTtestCredentials(hash)
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("success")
-            puts STR_VALID_CREDENTIALS
+            echo STR_VALID_CREDENTIALS
             else
             printError(STR_INVALID_CREDENTIALS, "User:#{@options.username} Pass:#{@options.password}")
         end
@@ -549,7 +557,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts "#{@prevNames[@argCounter]} deleted"
+            echo "#{@prevNames[@argCounter]} deleted"
         end
     end
     
@@ -567,9 +575,9 @@ class LetsCrate
                         printFile(file['name'], file['short_code'], file['id'])
                     end
                 else
-                    puts STR_EMPTY_CRATE
+                    echo STR_EMPTY_CRATE
                 end
-                puts "\n"
+                echo "\n"
             end
         end
     end
@@ -579,11 +587,11 @@ class LetsCrate
         if array.empty?
             printError(STR_NO_FILES_FOUND, @arguments[@argCounter])
         else
-            puts green(@arguments[@argCounter]+":")  # print header for matched files
+            echo green(@arguments[@argCounter]+":")  # print header for matched files
             for file in array
                 printInfo(file['name'], file['short_code'], file['id'])
             end
-            puts "\n"
+            echo "\n"
         end
     end
     
@@ -592,11 +600,11 @@ class LetsCrate
         if array.empty?
             printError(STR_NO_CRATES_FOUND, @arguments[@argCounter])
         else
-            puts green(@arguments[@argCounter]+":")   # print header for matched files
+            echo green(@arguments[@argCounter]+":")   # print header for matched files
             for crate in array
                 printInfo(crate['name'], crate['short_code'], crate['id'])
             end
-            puts "\n"
+            echo "\n"
         end
     end
     
@@ -639,7 +647,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts "renamed "+@prevNames[0]+" to "+hash['crate']['name']   # using 0 as magic number because this only uses one argument always.
+            echo "renamed "+@prevNames[0]+" to "+hash['crate']['name']   # using 0 as magic number because this only uses one argument always.
         end
     end
     
@@ -649,7 +657,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts "%s deleted" % [@prevNames[@argCounter]]
+            echo "%s deleted" % [@prevNames[@argCounter]]
         end
     end
     
@@ -755,7 +763,7 @@ class LetsCrate
         allCrates = @files['crates']
         for crate in allCrates
             match = crate if regex.match(crate['id'].to_s) != nil
-        end if crate['files']  # protection for empty crates
+        end
         return match['name']
     end
     
