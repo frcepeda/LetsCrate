@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.3"
+VERSION = "1.4"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -320,6 +320,7 @@ class LetsCrate
         @options = options
         @arguments = arguments
         @argCounter = -1    # argument index is raised first thing on every method, and it needs to be 0 the first time it's used.
+        @prevNames = []   # used when renaming or deleting stuff.
     end
     
     def run
@@ -401,6 +402,7 @@ class LetsCrate
     
     def deleteFile(fileID)
         if IDvalid?(fileID)
+            @prevNames << getFileName(fileID)
             response = Typhoeus::Request.post("#{BaseURL}files/destroy/#{fileID}.json",
                                                 :username => @options.username,
                                                 :password => @options.password,
@@ -484,6 +486,7 @@ class LetsCrate
     
     def renameCrate(name)
         if IDvalid?(@options.crateID)
+            @prevNames << getCrateName(@options.crateID)
             response = Typhoeus::Request.post("#{BaseURL}crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
                                                  :params => {
                                                  :name => name
@@ -501,6 +504,7 @@ class LetsCrate
     
     def deleteCrate(crateID)
         if IDvalid?(crateID)
+            @prevNames << getCrateName(crateID)
             response = Typhoeus::Request.post("#{BaseURL}crates/destroy/#{crateID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
@@ -545,7 +549,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts "#{@arguments[@argCounter]} deleted"
+            puts "#{@prevNames[@argCounter]} deleted"
         end
     end
     
@@ -635,7 +639,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts "renamed "+hash['crate']['id'].to_s+" to "+hash['crate']['name']
+            puts "renamed "+@prevNames[0]+" to "+hash['crate']['name']   # using 0 as magic number because this only uses one argument always.
         end
     end
     
@@ -645,7 +649,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            puts "#{@arguments[@argCounter]} deleted"
+            puts "%s deleted" % [@prevNames[@argCounter]]
         end
     end
     
@@ -741,6 +745,32 @@ class LetsCrate
             printError(STR_TOO_MANY_FILES, name)
             exit 1
         end
+    end
+    
+    # map IDs to names.
+    
+    def getCrateName(id)
+        @files = listFiles if @crates.nil?   # do not query the server each time a search is made.
+        regex = Regexp.new(id.to_s, Regexp::IGNORECASE)
+        allCrates = @files['crates']
+        for crate in allCrates
+            match = crate if regex.match(crate['id'].to_s) != nil
+        end if crate['files']  # protection for empty crates
+        return match['name']
+    end
+    
+    def getFileName(id)
+        @files = listFiles if @crates.nil?   # do not query the server each time a search is made.
+        regex = Regexp.new(id.to_s, Regexp::IGNORECASE)
+        allCrates = @files['crates']
+        for crate in allCrates
+            if crate['files']      # test if crate is empty
+                for file in crate['files']
+                    match = file if regex.match(file['id'].to_s) != nil
+                end
+            end
+        end
+        return match['name']
     end
 end
 

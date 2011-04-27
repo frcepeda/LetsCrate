@@ -65,7 +65,6 @@ Usage
 TO DO
 -----
 
-* Display the names of renamed or deleted files/crates instead of their IDs.
 * Use a configuration file to avoid typing the login credentials each time the command is run.
 * Implement verbose and quiet options.
 
