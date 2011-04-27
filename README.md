@@ -1,20 +1,22 @@
 LetsCrate
 ---------
 
-This is an unofficial command line client for [LetsCrate](http://letscrate.com) written in Ruby.
+This is an unofficial command line client for [Let's Crate](http://letscrate.com) written in Ruby.
 
 Please let me know what you think! You can reach me at frcepeda AT gmail DOT com
 
 Quick start manual
 ------------------
 
-To use this program, you need to create an account at [LetsCrate](http://letscrate.com).
+To use this program, you need to create an account at [Let's Crate](http://letscrate.com).
 
 Every command needs the "-l" switch, with the username and password separated by a
 colon.
 
 Example: 
+
 `    -l username:password
+
     -l "username:password"`
     
 After that, you can select an action from the list below and use the command normally.
@@ -26,7 +28,7 @@ If you use the --regexp function with the commands marked with an asterisk, ever
 will be treated as a regular expression. The search option uses regular expressions
 by default.
 
-An ID is a 5 digit identifier used internally by LetsCrate. 
+An ID is a 5 digit identifier used internally by Let's Crate. 
 To know the ID of your files, use the "-a" option to list them with their respective URLs and IDs.
 
 Generally, you don't need to know the ID of a file, but if you do, you can use it
