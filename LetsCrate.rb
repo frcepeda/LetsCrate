@@ -311,13 +311,13 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on(      '--ids', 'Print IDs when listing files/crates.' ) {
+            @options.printIDs = true
+        }
+        
         opts.on( '-v', '--verbose', 'Output extra info to the terminal' ) {
             @options.verbose = true
             info "Verbose mode on."
-        }
-        
-        opts.on(      '--ids', 'Print IDs when listing files.' ) {
-            @options.printIDs = true
         }
         
         opts.on( '-q', '--quiet', 'Do not output anything to the terminal' ) {
