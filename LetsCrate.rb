@@ -505,10 +505,10 @@ class LetsCrate
     end
     
     def searchFile(name)
-        info "Searching for file with name: #{name}."
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedFiles = []
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
+        info "Searching for file with name: #{name}."
         allCrates = @files['crates']
         for crate in allCrates
             if crate['files']      # test if crate is empty
@@ -521,10 +521,10 @@ class LetsCrate
     end
     
     def searchCrate(name)
-        info "Searching for crate with name: #{name}."
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedCrates = []
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
+        info "Searching for crate with name: #{name}."
         allCrates = @files['crates']
         for crate in allCrates
             matchedCrates << crate if regex.match(crate['name']) != nil
