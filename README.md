@@ -58,17 +58,24 @@ Usage
 	Misc. options:
     -r, --regexp                     Treat names as regular expressions
     -t, --test                       Only test the credentials
+        --ids                        Print IDs when listing files/crates.
     -v, --verbose                    Output extra info to the terminal
     -q, --quiet                      Do not output anything to the terminal
         --version                    Output version
     -h, --help                       Display this screen
 
+Tips
+----
+
+To avoid having to type your credentials every time you want to run this command, make an alias
+in your .bashrc file with something like this:
+
+`alias letscrate = "/path/to/script/LetsCrate.rb -l 'username:password'"`
 
 TO DO
 -----
 
 * Use a configuration file to avoid typing the login credentials each time the command is run.
-* Implement verbose and quiet options.
 
 BUGS
 ----
