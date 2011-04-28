@@ -58,8 +58,9 @@ Usage
 	Misc. options:
     -r, --regexp                     Treat names as regular expressions
     -t, --test                       Only test the credentials
+    -v, --verbose                    Output extra info to the terminal
     -q, --quiet                      Do not output anything to the terminal
-    -v, --version                    Output version
+        --version                    Output version
     -h, --help                       Display this screen
 
 
