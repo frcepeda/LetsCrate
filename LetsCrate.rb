@@ -70,7 +70,7 @@ module Output
     def printInfo(name, short_code, id)
         name = truncateName(name, @options.width-35) if name.length > @options.width-35
         if !(@options.width.nil?)
-            echo "#{name}%#{@options.width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %#s to align to the right.
+            echo "#{name}%#{@options.width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %-#s to align to the right.
             else
             echo "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"  # in case that the terminal width couldn't be obtained.
         end
