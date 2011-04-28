@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.5"
+VERSION = "1.6"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -68,26 +68,32 @@ module Output
         end
     end
     
-    def printInfo(name, short_code, id)
-        name = truncateName(name, @options.width-35) if name.length > @options.width-35
-        if !(@options.width.nil?)
-            echo "#{name}%#{@options.width-(name.length)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"   # this works by getting the remaining available characters and using %-#s to align to the right.
+    def printCrate(name, short_code, id)
+        data = @options.printIDs ? "  URL: http://lts.cr/#{short_code}  ID: #{id}" : "  URL: http://lts.cr/#{short_code}"
+        name = truncateName(name, @options.width-data.length) if name.length > (@options.width-data.length)
+        if !(@options.width.nil?)            
+            echo "#{name}%#{@options.width-(name.length)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
             else
-            echo "#{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"  # in case that the terminal width couldn't be obtained.
+            echo "* #{name}\t\t#{data}"
         end
     end
     
-    def printFile(name, short_code, id)
-        name = truncateName(name, @options.width-37) if name.length > @options.width-37
-        if !(@options.width.nil?)
-            echo "* #{name}%#{@options.width-(name.length+2)}s\n" % "URL: http://lts.cr/#{short_code}  ID: #{id}"
+    def printFile(name, size, short_code, id)
+        data = @options.printIDs ? "  #{ByteCount(size, true)}  URL: http://lts.cr/#{short_code}  ID: #{id}" : "  #{ByteCount(size, true)}  URL: http://lts.cr/#{short_code}"
+        name = truncateName(name, (@options.width-data.length)-2) if name.length > (@options.width-data.length)-2
+        if !(@options.width.nil?)            
+            echo "* #{name}%#{@options.width-(name.length+2)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
             else
-            echo "* #{name}\t\tURL: http://lts.cr/#{short_code}\tID: #{id}"
+            echo "* #{name}\t\t#{data}"
         end
     end
     
     def truncateName(name, length)
-        return name[0..((length/2)-2).truncate]+"..."+name[-(((length/2)-1).truncate)..-1]
+        if length.even?
+            return name[0..((length.to_f/2)-2).truncate]+"..."+name[-(((length.to_f/2)-2).truncate)..-1]
+        else
+            return name[0..((length.to_f/2)-1).truncate]+"..."+name[-(((length.to_f/2)-2).truncate)..-1]
+        end
     end
     
     def echo(argument)    #  this behaves exactly like puts, unless quiet is on. Use for all output messages.
@@ -168,10 +174,12 @@ end
 
 module Conversions
     def ByteCount(bytes, si)
+        return nil if bytes.nil?
+        bytes = bytes.to_int
         unit = si ? 1000 : 1024
-        return bytes + " B" if (bytes < unit)
+        return bytes.to_s+" B" if (bytes < unit)
         exp = (Math.log(bytes) / Math.log(unit)).to_int
-        pre = (si ? ["k", "M", "G", "T", "P", "E"] : ["K", "M", "G", "T", "P", "E"]).slice(exp-1) + (si ? "" : "i")
+        pre = (si ? ["k", "M", "G", "T", "P", "E"] : ["K", "M", "G", "T", "P", "E"]).slice(exp-1)+(si ? "" : "i")
         return "%.1f %sB" % [bytes.to_f / (unit ** exp), pre]
     end
 end
@@ -206,6 +214,7 @@ class App
         @options.usesFilesIDs = false    # this triggers ID checks on the arguments if set to true
         @options.usesCratesIDs = false   # same as above but with crates
         @options.regex = false    # if set to true, all names are treated as regular expressions
+        @options.printIDs = false  # if true, all output will have IDs instead of names.
         
         opts = OptionParser.new
         
@@ -305,6 +314,10 @@ class App
         opts.on( '-v', '--verbose', 'Output extra info to the terminal' ) {
             @options.verbose = true
             info "Verbose mode on."
+        }
+        
+        opts.on(      '--ids', 'Print IDs when listing files.' ) {
+            @options.printIDs = true
         }
         
         opts.on( '-q', '--quiet', 'Do not output anything to the terminal' ) {
@@ -609,7 +622,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            printInfo(File.basename(@arguments[@argCounter]), hash['file']['short_code'], hash['file']['id'])
+            printFile(File.basename(@arguments[@argCounter]), nil, hash['file']['short_code'], hash['file']['id'])
         end
     end
     
@@ -632,10 +645,10 @@ class LetsCrate
             crates = hash['crates']
             for crate in crates
                 echo "\n"
-                printInfo(crate['name'], crate['short_code'], crate['id'])
+                printCrate(crate['name'], crate['short_code'], crate['id'])
                 if crate['files']      # test if crate is empty
                     for file in crate['files']
-                        printFile(file['name'], file['short_code'], file['id'])
+                        printFile(file['name'], file['size'], file['short_code'], file['id'])
                     end
                 else
                     echo STR_EMPTY_CRATE
@@ -652,7 +665,7 @@ class LetsCrate
             echo "\n"
             echo green(@arguments[@argCounter]+":")  # print header for matched files
             for file in array
-                printInfo(file['name'], file['short_code'], file['id'])
+                printFile(file['name'], file['size'], file['short_code'], file['id'])
             end
         end
     end
@@ -665,7 +678,7 @@ class LetsCrate
             echo "\n"
             echo green(@arguments[@argCounter]+":")   # print header for matched files
             for crate in array
-                printInfo(crate['name'], crate['short_code'], crate['id'])
+                printCrate(crate['name'], crate['short_code'], crate['id'])
             end
         end
     end
@@ -676,7 +689,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            printInfo(hash['item']['name'], hash['item']['short_code'], hash['item']['id'])
+            printFile(hash['item']['name'], hash['item']['size'], hash['item']['short_code'], hash['item']['id'])
         end
     end
     
@@ -686,7 +699,7 @@ class LetsCrate
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            printInfo(hash['crate']['name'], hash['crate']['short_code'], hash['crate']['id'])
+            printCrate(hash['crate']['name'], hash['crate']['short_code'], hash['crate']['id'])
         end
     end
     
@@ -698,7 +711,7 @@ class LetsCrate
         else
             crates = hash['crates']
             for crate in crates
-                printInfo(crate['name'], crate['short_code'], crate['id'])
+                printCrate(crate['name'], crate['short_code'], crate['id'])
             end
         end
     end
