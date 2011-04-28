@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.4.5"
+VERSION = "1.5"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -56,6 +56,7 @@ end
 module Output
     
     def detect_terminal_size
+        info "Terminal width = #{`tput cols`.to_i}"
         return `tput cols`.to_i    # returns terminal width in characters
     end
     
@@ -93,20 +94,28 @@ module Output
         puts argument unless @options.quiet
     end
     
+    def info(argument)
+        echo blue("Info: ")+argument if @options.verbose
+    end
+    
 end
 
 module IntegrityChecks
     
     def IDvalid?(id)
+        info "Testing ID: #{id}"
         test = id.to_s
         if test[/^\d{5}$/].nil?  # regex checks for 5 continuous digits surrounded by start and end of string.
+            info "#{id} isn't a valid ID."
             return false
         else
+            info "#{id} is a valid ID."
             return true
         end
     end
     
     def IDsvalid?(ids)
+        info "Testing IDs: #{ids}."
         results = []
         
         for id in ids
@@ -114,8 +123,10 @@ module IntegrityChecks
         end
         
         unless results.include?(false)
+            info "All IDs are valid."
             return true
         else
+            info "At least one ID isn't valid."
             return false
         end
     end
@@ -178,6 +189,7 @@ class App
         @options = OpenStruct.new    # all the arguments will be parsed into this openstruct
         @options.actionCounter = 0     # this should always end up as 1, or else there's a problem with the script arguments.
         @options.action = nil    # this will be performed by the LetsCrate class
+        @options.verbose = false
         @options.quiet = false    # if true, nothing will be printed to the screen. (aside from errors)
         @options.width = detect_terminal_size   # determine terminal's width
         @options.usesFilesIDs = false    # this triggers ID checks on the arguments if set to true
@@ -199,6 +211,7 @@ class App
                 @options.username = credentials[0]
                 @options.password = credentials[1]
                 @options.login = 1
+                info "Logging in with username: #{credentials[0]}and password:#{credentials[1]}."
             else
                 printError(STR_CREDENTIALS_ERROR, login.to_s)
                 exit 1
@@ -278,11 +291,16 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on( '-v', '--verbose', 'Output extra info to the terminal' ) {
+            @options.verbose = true
+            info "Verbose mode on."
+        }
+        
         opts.on( '-q', '--quiet', 'Do not output anything to the terminal' ) {
             @options.quiet = true
         }
         
-        opts.on( '-v', '--version', 'Output version' ) {
+        opts.on(       '--version', 'Output version' ) {
             puts STR_VERSION
             exit 0
         }
@@ -338,8 +356,10 @@ class LetsCrate
         
         if !(@options.crateID.nil?)    #  Check if crateID is used in this process.
             if IDvalid?(@options.crateID)
+                info "Crate ID valid."
                 # YAY! Do nothing.
             else
+                info "Crate ID invalid. Mapping name to crate."
                 @options.crateID = getIDForCrate(@options.crateID)
             end
         end
@@ -347,11 +367,14 @@ class LetsCrate
         if @options.usesCratesIDs
             
             if IDsvalid?(@arguments)   #  that means I have to parse all the arguments.
+                info "Crate IDs valid"
                 # YAY! Do nothing.
             else
                 if @options.regex
+                    info "Crate IDs invalid. Mapping names to crates. Regexp is on."
                     @arguments = getIDsForCrates!(@arguments)
                 else
+                    info "Crate IDs invalid. Mapping names to crates."
                     @arguments = getIDsForCrates(@arguments)
                 end
             end
@@ -360,11 +383,14 @@ class LetsCrate
         if @options.usesFilesIDs
             
             if IDsvalid?(@arguments)   #  that means I have to parse all the arguments.
+                info "File IDs valid."
                 # YAY! Do nothing.
             else
                 if @options.regex
+                    info "File IDs invalid. Mapping names to files. Regexp is on."
                     @arguments = getIDsForFiles!(@arguments)
                 else
+                    info "File IDs invalid. Mapping names to files."
                     @arguments = getIDsForFiles(@arguments)
                 end
             end
@@ -385,6 +411,7 @@ class LetsCrate
     # -----   API documentation is at http://letscrate.com/api
     
     def testCredentials
+        info "Testing Credentials. Username: #{@options.username}, Password: #{@options.password}"
         response = Typhoeus::Request.post("#{BaseURL}users/authenticate.json",
                                           :username => @options.username,
                                           :password => @options.password,
@@ -395,6 +422,7 @@ class LetsCrate
     
     def uploadFile(file)
         if IDvalid?(@options.crateID)
+            info "Uploading file #{file}."
             response = Typhoeus::Request.post("#{BaseURL}files/upload.json",
                                           :params => {
                                             :file => File.open(file ,"r"),
@@ -413,7 +441,9 @@ class LetsCrate
     
     def deleteFile(fileID)
         if IDvalid?(fileID)
+            info "Getting file #{fileID}'s name."
             @prevNames << getFileName(fileID)
+            info "Deleting file #{fileID}."
             response = Typhoeus::Request.post("#{BaseURL}files/destroy/#{fileID}.json",
                                                 :username => @options.username,
                                                 :password => @options.password,
@@ -426,6 +456,7 @@ class LetsCrate
     end
     
     def listFiles
+        info "Downloading file list."
         response = Typhoeus::Request.post("#{BaseURL}files/list.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
@@ -436,6 +467,7 @@ class LetsCrate
     
     def listFileID(fileID)
         if IDvalid?(fileID)
+            info "Getting file #{fileID} info."
             response = Typhoeus::Request.post("#{BaseURL}files/show/#{fileID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
@@ -449,6 +481,7 @@ class LetsCrate
     end
     
     def searchFile(name)
+        info "Searching for file with name: #{name}."
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedFiles = []
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
@@ -464,6 +497,7 @@ class LetsCrate
     end
     
     def searchCrate(name)
+        info "Searching for crate with name: #{name}."
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedCrates = []
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
@@ -475,6 +509,7 @@ class LetsCrate
     end
     
     def createCrate(name)
+        info "Creating crate with name: #{name}."
         response = Typhoeus::Request.post("#{BaseURL}crates/add.json",
                                                  :params => {
                                                  :name => name
@@ -488,12 +523,15 @@ class LetsCrate
     
     def listCrates(*name)
         if name.count == 0   # was I passed a name?
+            info "Downloading crate list."
             response = Typhoeus::Request.post("#{BaseURL}crates/list.json",
                                              :username => @options.username,
                                              :password => @options.password,
                                              )
+            info "Listing all crates."
             return parseResponse(response)
         else  # that means i have to parse it.
+            info "Listing crates with name: #{name[0]}."
             crates = searchCrate(name[0]) # I need to pass the name like that because Ruby groups all variable number arguments into an array.
             hash = {"crates" => crates}  # PRINTlistFiles expects the original response from the server. This mimics the format of the hash.
             PRINTlistFiles(hash)
@@ -503,7 +541,9 @@ class LetsCrate
     
     def renameCrate(name)
         if IDvalid?(@options.crateID)
+            info "Getting previous crate name."
             @prevNames << getCrateName(@options.crateID)
+            info "Renaming crate #{@options.crateID} to #{name}."
             response = Typhoeus::Request.post("#{BaseURL}crates/rename/#{@options.crateID}.json", # the crateID isn't an argument, the name is.
                                                  :params => {
                                                  :name => name
@@ -521,7 +561,9 @@ class LetsCrate
     
     def deleteCrate(crateID)
         if IDvalid?(crateID)
+            info "Getting previous crate name."
             @prevNames << getCrateName(crateID)
+            info "Deleting crate #{crateID}."
             response = Typhoeus::Request.post("#{BaseURL}crates/destroy/#{crateID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
@@ -672,6 +714,7 @@ class LetsCrate
     # Map names to IDs
     
     def getIDsForCrates(array)
+        info "Getting IDs for crate names: #{array}"
         ids = []
         for name in array
             next if IDvalid?(name)
@@ -682,17 +725,20 @@ class LetsCrate
         end
         
         if ids.count == array.count
+            info "Got IDs: #{ids}"
             return ids
         elsif ids.count == 0
             printError(STR_NO_CRATES_FOUND, name)
             exit 1
         elsif ids.count > array.count
+            info "There are more IDs than names. This should only happen when using regular expressions."
             printError(STR_TOO_MANY_CRATES, name)
             exit 1
         end
     end
     
     def getIDsForFiles(array)
+        info "Getting IDs for filenames: #{array}"
         ids = []
         for name in array
             next if IDvalid?(name)
@@ -703,17 +749,20 @@ class LetsCrate
         end
         
         if ids.count == array.count
+            info "Got IDs: #{ids}"
             return ids
         elsif ids.count == 0
             printError(STR_NO_FILES_FOUND, name)
             exit 1
         elsif ids.count > array.count
+            info "There are more IDs than names. This should only happen when using regular expressions."
             printError(STR_TOO_MANY_FILES, name)
             exit 1
         end
     end
     
     def getIDsForCrates!(array)  # these methods return ALL the matches for all the IDs. Used with --regexp
+        info "Getting IDs for crate names: #{array}"
         ids = []
         for name in array
             next if IDvalid?(name)
@@ -722,10 +771,12 @@ class LetsCrate
                 ids << crate['id'].to_s
             end
         end
+        info "Got IDs: #{ids}"
         return ids
     end
     
     def getIDsForFiles!(array)  # these methods return ALL the matches for all the IDs. Used with --regexp
+        info "Getting IDs for filenames: #{array}"
         ids = []
         for name in array
             next if IDvalid?(name)
@@ -734,12 +785,15 @@ class LetsCrate
                 ids << file['id'].to_s
             end
         end
+        info "Got IDs: #{ids}"
         return ids
     end
     
     def getIDForCrate(name)
+        info "Getting crate ID for name: #{name}"
         id = getIDsForCrates([name])
         if id.count == 1
+            info "Got crate ID: #{id[0]}"
             return id[0]
         elsif id.count == 0
             printError(STR_NO_CRATES_FOUND, name)
@@ -751,8 +805,10 @@ class LetsCrate
     end
     
     def getIDForFile(name)
+        info "Getting file ID for name: #{name}"
         id = getIDsForFiles([name])
         if id.count == 1
+            info "Got file ID: #{id[0]}"
             return id[0]
         elsif id.count == 0
             printError(STR_NO_FILES_FOUND, name)
@@ -766,16 +822,19 @@ class LetsCrate
     # map IDs to names.
     
     def getCrateName(id)
+        info "Getting file name for ID: #{id.to_s}"
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
         regex = Regexp.new(id.to_s, Regexp::IGNORECASE)
         allCrates = @files['crates']
         for crate in allCrates
             match = crate if regex.match(crate['id'].to_s) != nil
         end
+        info "Got file name: #{match['name']}"
         return match['name']
     end
     
     def getFileName(id)
+        info "Getting crate name for ID: #{id.to_s}"
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
         regex = Regexp.new(id.to_s, Regexp::IGNORECASE)
         allCrates = @files['crates']
@@ -786,6 +845,7 @@ class LetsCrate
                 end
             end
         end
+        info "Got crate name: #{match['name']}"
         return match['name']
     end
 end
