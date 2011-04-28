@@ -269,7 +269,7 @@ class App
         opts.separator ""
         opts.separator "Misc. options:"
         
-        opts.on( '-r', '--regexp', 'Treat all names as regular expressions' ) {
+        opts.on( '-r', '--regexp', 'Treat names as regular expressions' ) {
             @options.regex = true
         }
         
@@ -278,7 +278,7 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '-q', '--quiet', 'Treat all names as regular expressions' ) {
+        opts.on( '-q', '--quiet', 'Do not output anything to the terminal' ) {
             @options.quiet = true
         }
         
