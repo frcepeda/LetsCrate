@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.4.1"
+VERSION = "1.4.5"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -220,7 +220,7 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '-a', '--list', 'List all files by crate' ) {
+        opts.on( '-a', '--list', 'List all files' ) {
             @options.action = :listFiles
             @options.actionCounter += 1
         }
@@ -244,7 +244,7 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '-A', '--listcrates', 'List all crates' ) {
+        opts.on( '-A', '--listcrates', 'List all crates (or files in crates, if names are passed)' ) {
             @options.action = :listCrates
             @options.actionCounter += 1
         }
@@ -451,7 +451,7 @@ class LetsCrate
     def searchFile(name)
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedFiles = []
-        @files = listFiles if @crates.nil?   # do not query the server each time a search is made.
+        @files = listFiles if @files.nil?   # do not query the server each time a search is made.
         allCrates = @files['crates']
         for crate in allCrates
             if crate['files']      # test if crate is empty
@@ -466,7 +466,7 @@ class LetsCrate
     def searchCrate(name)
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedCrates = []
-        @files = listCrates if @crates.nil?   # do not query the server each time a search is made.
+        @files = listFiles if @files.nil?   # do not query the server each time a search is made.
         allCrates = @files['crates']
         for crate in allCrates
             matchedCrates << crate if regex.match(crate['name']) != nil
@@ -486,13 +486,19 @@ class LetsCrate
         return parseResponse(response)
     end
     
-    def listCrates
-        response = Typhoeus::Request.post("#{BaseURL}crates/list.json",
+    def listCrates(*name)
+        if name.count == 0   # was I passed a name?
+            response = Typhoeus::Request.post("#{BaseURL}crates/list.json",
                                              :username => @options.username,
                                              :password => @options.password,
                                              )
-        
-        return parseResponse(response)
+            return parseResponse(response)
+        else  # that means i have to parse it.
+            crates = searchCrate(name[0]) # I need to pass the name like that because Ruby groups all variable number arguments into an array.
+            hash = {"crates" => crates}  # PRINTlistFiles expects the original response from the server. This mimics the format of the hash.
+            PRINTlistFiles(hash)
+            return nil    # don't return anything. I already outputed everything to the terminal.
+        end
     end
     
     def renameCrate(name)
@@ -572,6 +578,7 @@ class LetsCrate
         else
             crates = hash['crates']
             for crate in crates
+                echo "\n"
                 printInfo(crate['name'], crate['short_code'], crate['id'])
                 if crate['files']      # test if crate is empty
                     for file in crate['files']
@@ -580,7 +587,6 @@ class LetsCrate
                 else
                     echo STR_EMPTY_CRATE
                 end
-                echo "\n"
             end
         end
     end
@@ -590,11 +596,11 @@ class LetsCrate
         if array.empty?
             printError(STR_NO_FILES_FOUND, @arguments[@argCounter])
         else
+            echo "\n"
             echo green(@arguments[@argCounter]+":")  # print header for matched files
             for file in array
                 printInfo(file['name'], file['short_code'], file['id'])
             end
-            echo "\n"
         end
     end
     
@@ -603,11 +609,11 @@ class LetsCrate
         if array.empty?
             printError(STR_NO_CRATES_FOUND, @arguments[@argCounter])
         else
+            echo "\n"
             echo green(@arguments[@argCounter]+":")   # print header for matched files
             for crate in array
                 printInfo(crate['name'], crate['short_code'], crate['id'])
             end
-            echo "\n"
         end
     end
     
@@ -645,12 +651,11 @@ class LetsCrate
     end
     
     def PRINTrenameCrate(hash)
-        @argCounter += 1
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
-            echo STR_RENAMED % [@prevNames[0], hash['crate']['name']]   # using 0 as magic number because this only uses one argument always.
+            echo STR_RENAMED % [@prevNames[0], hash['crate']['name']]   # using 0 as magic number because this always uses only one argument.
         end
     end
     
@@ -761,7 +766,7 @@ class LetsCrate
     # map IDs to names.
     
     def getCrateName(id)
-        @files = listFiles if @crates.nil?   # do not query the server each time a search is made.
+        @files = listFiles if @files.nil?   # do not query the server each time a search is made.
         regex = Regexp.new(id.to_s, Regexp::IGNORECASE)
         allCrates = @files['crates']
         for crate in allCrates
@@ -771,7 +776,7 @@ class LetsCrate
     end
     
     def getFileName(id)
-        @files = listFiles if @crates.nil?   # do not query the server each time a search is made.
+        @files = listFiles if @files.nil?   # do not query the server each time a search is made.
         regex = Regexp.new(id.to_s, Regexp::IGNORECASE)
         allCrates = @files['crates']
         for crate in allCrates
