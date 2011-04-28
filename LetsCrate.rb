@@ -166,11 +166,22 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_RENAMED = "Renamed %s to %s"
 end
 
+module Conversions
+    def ByteCount(bytes, si)
+        unit = si ? 1000 : 1024
+        return bytes + " B" if (bytes < unit)
+        exp = (Math.log(bytes) / Math.log(unit)).to_int
+        pre = (si ? ["k", "M", "G", "T", "P", "E"] : ["K", "M", "G", "T", "P", "E"]).slice(exp-1) + (si ? "" : "i")
+        return "%.1f %sB" % [bytes.to_f / (unit ** exp), pre]
+    end
+end
+
 module Everything    # I got tired of manually adding all modules.
     include Colors
     include Output
     include IntegrityChecks
     include Strings
+    include Conversions
 end
 
 #  here end the modules
