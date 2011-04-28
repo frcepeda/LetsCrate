@@ -822,19 +822,19 @@ class LetsCrate
     # map IDs to names.
     
     def getCrateName(id)
-        info "Getting file name for ID: #{id.to_s}"
+        info "Getting crate name for ID: #{id.to_s}"
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
         regex = Regexp.new(id.to_s, Regexp::IGNORECASE)
         allCrates = @files['crates']
         for crate in allCrates
             match = crate if regex.match(crate['id'].to_s) != nil
         end
-        info "Got file name: #{match['name']}"
+        info "Got crate name: #{match['name']}"
         return match['name']
     end
     
     def getFileName(id)
-        info "Getting crate name for ID: #{id.to_s}"
+        info "Getting filename for ID: #{id.to_s}"
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
         regex = Regexp.new(id.to_s, Regexp::IGNORECASE)
         allCrates = @files['crates']
@@ -845,7 +845,7 @@ class LetsCrate
                 end
             end
         end
-        info "Got crate name: #{match['name']}"
+        info "Got filename: #{match['name']}"
         return match['name']
     end
 end
