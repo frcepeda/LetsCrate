@@ -43,20 +43,22 @@ Usage
 
 	File functions:
     -u, --upload [Crate name]        Upload files to crate
-    -d, --delete                     Delete files with names *
+    -r, --delete                     Delete files with names *
     -a, --list                       List all files
+    -d, --download                   Download files with names *
     -s, --search                     Search for files with names
     -i, --id                         Show files with IDs
 
 	Crate functions:
     -N, --newcrate                   Create new crates with names
     -A, --listcrates                 List all crates (or files in crates, if names are passed)
+    -D, --downloadcrates             Download crates with names *
     -S, --searchcrates               Search for crates with names
-    -R, --renamecrate [Crate name]   Rename crate to name
-    -D, --deletecrate                Delete crates with names *
+        --renamecrate [Crate name]   Rename crate to name
+    -R, --deletecrate                Delete crates with names *
 
 	Misc. options:
-    -r, --regexp                     Treat names as regular expressions
+        --regexp                     Treat names as regular expressions
     -t, --test                       Only test the credentials
         --ids                        Print IDs when listing files/crates.
     -v, --verbose                    Output extra info to the terminal
