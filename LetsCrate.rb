@@ -32,9 +32,10 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.6"
+VERSION = "1.7"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
+DEBUG = false
 
 # here start the modules
 
@@ -66,6 +67,10 @@ module Output
             else
             $stderr.puts red("Error:")+" #{message}\t<#{argument}>"
         end
+    end
+    
+    def printWarning(message)
+        $stderr.puts yellow("Warning:")+" #{message}"
     end
     
     def printCrate(name, short_code, id)
@@ -165,8 +170,8 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_NO_FILES_FOUND = "No files were found that match that name."
     STR_NO_CRATES_FOUND = "No crates were found that match that name."
     
-    STR_TOO_MANY_CRATES = "More than 1 crate matched that name. Please make your query more specific."
-    STR_TOO_MANY_FILES = "More than 1 file matched that name. Please make your query more specific."
+    STR_TOO_MANY_CRATES = "More than 1 crate matched that name. Please make your query more specific, or use --regexp if you meant this to happen."
+    STR_TOO_MANY_FILES = "More than 1 file matched that name. Please make your query more specific, or use --regexp if you meant this to happen."
     
     STR_DELETED = "%s deleted"
     STR_RENAMED = "Renamed %s to %s"
@@ -247,7 +252,7 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on( '-d', '--delete', 'Delete files with names *' ) {
+        opts.on( '-r', '--delete', 'Delete files with names *' ) {
             @options.action = :deleteFile
             @options.usesFilesIDs = true
             @options.actionCounter += 1
@@ -255,6 +260,12 @@ class App
         
         opts.on( '-a', '--list', 'List all files' ) {
             @options.action = :listFiles
+            @options.actionCounter += 1
+        }
+        
+        opts.on( '-d', '--download', 'Download files with names *' ) {
+            @options.action = :downloadFiles
+            @options.usesFilesIDs = true
             @options.actionCounter += 1
         }
         
@@ -282,18 +293,24 @@ class App
             @options.actionCounter += 1
         }
         
+        opts.on( '-D', '--downloadcrates', 'Download crates with names *' ) {
+            @options.action = :downloadCrates
+            @options.usesCratesIDs = true
+            @options.actionCounter += 1
+        }
+        
         opts.on( '-S', '--searchcrates', 'Search for crates with names' ) {
             @options.action = :searchCrate
             @options.actionCounter += 1
         }
         
-        opts.on( '-R', '--renamecrate [Crate name]', 'Rename crate to name' ) { |crateID|
+        opts.on(       '--renamecrate [Crate name]', 'Rename crate to name' ) { |crateID|
             @options.crateID = crateID
             @options.action = :renameCrate
             @options.actionCounter += 1
         }
         
-        opts.on( '-D', '--deletecrate', 'Delete crates with names *' ) {
+        opts.on( '-R', '--deletecrate', 'Delete crates with names *' ) {
             @options.action = :deleteCrate
             @options.usesCratesIDs = true
             @options.actionCounter += 1
@@ -302,7 +319,7 @@ class App
         opts.separator ""
         opts.separator "Misc. options:"
         
-        opts.on( '-r', '--regexp', 'Treat names as regular expressions' ) {
+        opts.on(       '--regexp', 'Treat names as regular expressions' ) {
             @options.regex = true
         }
         
@@ -311,7 +328,7 @@ class App
             @options.actionCounter += 1
         }
         
-        opts.on(      '--ids', 'Print IDs when listing files/crates.' ) {
+        opts.on(       '--ids', 'Print IDs when listing files/crates.' ) {
             @options.printIDs = true
         }
         
@@ -423,6 +440,7 @@ class LetsCrate
         if @arguments.count > 0     # check if command requires extra arguments
             
             for argument in @arguments
+                @argCounter += 1
                 response = self.send(@options.action, argument)    # response is a parsed hash or an array of hashes.
                 self.send("PRINT"+@options.action.to_s, response)
             end
@@ -436,7 +454,7 @@ class LetsCrate
     
     def testCredentials
         info "Testing Credentials. Username: #{@options.username}, Password: #{@options.password}"
-        response = Typhoeus::Request.post("#{BaseURL}users/authenticate.json",
+        response = Typhoeus::Request.get("#{BaseURL}users/authenticate.json",
                                           :username => @options.username,
                                           :password => @options.password,
                                           )
@@ -481,7 +499,7 @@ class LetsCrate
     
     def listFiles
         info "Downloading file list."
-        response = Typhoeus::Request.post("#{BaseURL}files/list.json",
+        response = Typhoeus::Request.get("#{BaseURL}files/list.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
@@ -492,7 +510,7 @@ class LetsCrate
     def listFileID(fileID)
         if IDvalid?(fileID)
             info "Getting file #{fileID} info."
-            response = Typhoeus::Request.post("#{BaseURL}files/show/#{fileID}.json",
+            response = Typhoeus::Request.get("#{BaseURL}files/show/#{fileID}.json",
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
@@ -504,11 +522,43 @@ class LetsCrate
             
     end
     
+    def downloadFiles(fileID, *dir)
+        if IDvalid?(fileID)
+            info "Downloading file #{fileID}."
+            longURL = getFileLongURL(fileID)
+            info "Downloading #{longURL}."
+            name = getFileName(fileID)
+            if File.exists?(dir.nil? ? "#{name}" : "#{dir[0]}#{name}")
+                printWarning("\"#{name}\" already exists. Skipping.")
+            else
+                file = File.new(dir.nil? ? "#{name}" : "#{dir[0]}#{name}", "w")
+                response = Typhoeus::Request.get("#{longURL}")
+                if response.success?
+                    info "Successfuly downloaded file."
+                    file.write(response.body)
+                elsif response.timed_out?
+                    printError("The request timed out.", "TimeOut")
+                elsif response.code == 0
+                    # Could not get an http response, something's wrong.
+                    printError(response.curl_error_message, "HTTPError")
+                else
+                    # Received a non-successful http response.
+                    printError("HTTP Error code: "+response.code.to_s, "HTTPError")
+                end
+                file.close
+                return name if response.success?
+            end
+            return nil
+        else
+            printError(STR_FILEID_ERROR, fileID)
+        end
+    end
+    
     def searchFile(name)
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedFiles = []
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
-        info "Searching for file with name: #{name}."
+        info "Searching for files with name: #{name}."
         allCrates = @files['crates']
         for crate in allCrates
             if crate['files']      # test if crate is empty
@@ -524,7 +574,7 @@ class LetsCrate
         regex = Regexp.new(name, Regexp::IGNORECASE)   # make regex class with every argument
         matchedCrates = []
         @files = listFiles if @files.nil?   # do not query the server each time a search is made.
-        info "Searching for crate with name: #{name}."
+        info "Searching for crates with name: #{name}."
         allCrates = @files['crates']
         for crate in allCrates
             matchedCrates << crate if regex.match(crate['name']) != nil
@@ -546,9 +596,9 @@ class LetsCrate
     end
     
     def listCrates(*name)
-        if name.count == 0   # was I passed a name?
+        if name.count == 0  # was I passed a name?
             info "Downloading crate list."
-            response = Typhoeus::Request.post("#{BaseURL}crates/list.json",
+            response = Typhoeus::Request.get("#{BaseURL}crates/list.json",
                                              :username => @options.username,
                                              :password => @options.password,
                                              )
@@ -560,6 +610,28 @@ class LetsCrate
             hash = {"crates" => crates}  # PRINTlistFiles expects the original response from the server. This mimics the format of the hash.
             PRINTlistFiles(hash)
             return nil    # don't return anything. I already outputed everything to the terminal.
+        end
+    end
+    
+    def downloadCrates(crateID)  # this is the method that actually downloads the file.
+        if IDvalid?(crateID)
+            info "Downloading crate #{crateID}."
+            files = getFilesInCrateID(crateID)
+            fileName = []
+            folderName = getCrateName(crateID)
+            begin
+                Dir.mkdir(folderName)
+                echo "Created folder \"#{folderName}\""
+            rescue SystemCallError => ex
+                printWarning("The folder \"#{folderName}\" already exists. Files will be downloaded there.")
+            end
+            for file in files
+                fileName = downloadFiles(file, folderName+"/")
+                PRINTdownloadFiles(fileName)
+            end
+            return nil
+        else
+            printError(STR_FILEID_ERROR, fileID)
         end
     end
     
@@ -602,6 +674,7 @@ class LetsCrate
     # ------
     
     def parseResponse(response)
+        puts JSON.parse(response.body) if DEBUG
         return JSON.parse(response.body)
     end
     
@@ -617,7 +690,6 @@ class LetsCrate
     end
     
     def PRINTuploadFile(hash)
-        @argCounter += 1
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
@@ -627,7 +699,6 @@ class LetsCrate
     end
     
     def PRINTdeleteFile(hash)
-        @argCounter += 1
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
@@ -637,7 +708,6 @@ class LetsCrate
     end
     
     def PRINTlistFiles(hash)
-        @argCounter += 1
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
                 printError(hash['message'], @arguments[@argCounter])
@@ -656,9 +726,14 @@ class LetsCrate
             end
         end
     end
+    
+    def PRINTdownloadFiles(name)
+        return 0 if name.nil?    # skip the output if name doesn't exist.
+        name = truncateName(name, @options.width-12) if name.length > @options.width-12
+        echo "#{name} downloaded."
+    end
         
     def PRINTsearchFile(array)
-        @argCounter += 1
         if array.empty?
             printError(STR_NO_FILES_FOUND, @arguments[@argCounter])
         else
@@ -671,7 +746,6 @@ class LetsCrate
     end
     
     def PRINTsearchCrate(array)
-        @argCounter += 1
         if array.empty?
             printError(STR_NO_CRATES_FOUND, @arguments[@argCounter])
         else
@@ -684,7 +758,6 @@ class LetsCrate
     end
     
     def PRINTlistFileID(hash)
-        @argCounter += 1
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
@@ -694,7 +767,6 @@ class LetsCrate
     end
     
     def PRINTcreateCrate(hash)
-        @argCounter += 1
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
@@ -704,7 +776,6 @@ class LetsCrate
     end
     
     def PRINTlistCrates(hash)
-        @argCounter += 1
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
@@ -714,6 +785,10 @@ class LetsCrate
                 printCrate(crate['name'], crate['short_code'], crate['id'])
             end
         end
+    end
+    
+    def PRINTdownloadCrates(nothing)
+        # do nothing. I already printed everything on the fly.
     end
     
     def PRINTrenameCrate(hash)
@@ -726,7 +801,6 @@ class LetsCrate
     end
     
     def PRINTdeleteCrate(hash)
-        @argCounter += 1
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
@@ -871,6 +945,53 @@ class LetsCrate
         end
         info "Got filename: #{match['name']}"
         return match['name']
+    end
+    
+    # Get the URLs to download a file/crate
+    
+    def getFileLongURL(id)
+        info "Getting long URL for file ID: #{id}"
+        shortURL = getFileShortCode(id)
+        info "Got short code: #{shortURL}"
+        response = Typhoeus::Request.get("http://letscrate.com/#{shortURL}")  # Contacts the server to "download", and gets instead a 302 HTTP code with a redirection URL.
+        longURL = response.headers[/(Location: )(\S*)/, 2]  # Regex that searches for "Location: URL" and returns only the URL. Magic.
+        info "Got long URL: #{longURL}"
+        return longURL
+    end
+    
+    def getFileShortCode(id)
+        info "Getting short code for file ID: #{id}"
+        ids = []
+        @files = listFiles if @files.nil?   # do not query the server each time a search is made.
+        allCrates = @files['crates']
+        for crate in allCrates
+            if crate['files']      # test if crate is empty
+                for file in crate['files']
+                    return "#{file['short_code']}" if file['id'] == id.to_i
+                end
+            end
+        end
+        return nil
+    end
+    
+    # Get fileID of files inside a crate.
+    
+    def getFilesInCrateID(crateID)
+        info "Getting files in crate with ID: #{crateID}."
+        ids = []
+        @files = listFiles if @files.nil?   # do not query the server each time a search is made.
+        allCrates = @files['crates']
+        for crate in allCrates
+            if crate['id'] == crateID.to_i
+                matchedCrate = crate
+                break
+            end
+        end
+        for file in matchedCrate['files']
+            ids << file['id']
+        end
+        info "Got files: #{ids}"
+        return ids
     end
 end
 
