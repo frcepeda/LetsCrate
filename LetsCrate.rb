@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.7"
+VERSION = "1.7.5"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 DEBUG = false
@@ -327,6 +327,11 @@ class App
         opts.separator ""
         opts.separator "Misc. options:"
         
+        opts.on(       '--downloadall', 'Downloads everything in your Let\'s Crate account.' ) {
+            @options.action = :downloadAll
+            @options.actionCounter += 1
+        }
+        
         opts.on(       '--regexp', 'Treat names as regular expressions' ) {
             @options.regex = true
         }
@@ -534,11 +539,11 @@ class LetsCrate
         if IDvalid?(fileID)
             info "Downloading file #{fileID}."
             longURL = getFileLongURL(fileID)
-            info "Downloading #{longURL}."
             name = getFileName(fileID)
             if File.exists?(dir.nil? ? "#{name}" : "#{dir[0]}#{name}")
                 printWarning("\"#{name}\" already exists. Skipping.")
             else
+                info "Downloading #{longURL}."
                 file = File.new(dir.nil? ? "#{name}" : "#{dir[0]}#{name}", "w")
                 response = Typhoeus::Request.get("#{longURL}")
                 if response.success?
@@ -615,29 +620,31 @@ class LetsCrate
         else  # that means i have to parse it.
             info "Listing crates with name: #{name[0]}."
             crates = searchCrate(name[0]) # I need to pass the name like that because Ruby groups all variable number arguments into an array.
-            hash = {"crates" => crates}  # PRINTlistFiles expects the original response from the server. This mimics the format of the hash.
-            PRINTlistFiles(hash)
-            return nil    # don't return anything. I already outputed everything to the terminal.
+            hash = {"crates" => crates}  # PRINTlistCrates expects the original response from the server. This mimics the format of the hash.
+            return hash
         end
     end
     
-    def downloadCrates(crateID)  # this is the method that actually downloads the file.
+    def downloadCrates(crateID)
         if IDvalid?(crateID)
             info "Downloading crate #{crateID}."
             files = getFilesInCrateID(crateID)
-            fileName = []
-            folderName = getCrateName(crateID)
-            begin
-                Dir.mkdir(folderName)
-                echo "Created folder \"#{folderName}\""
-            rescue SystemCallError => ex
-                printWarning("The folder \"#{folderName}\" already exists. Files will be downloaded there.")
+            crateName = getCrateName(crateID)
+            unless files.nil?
+                begin
+                    Dir.mkdir(crateName)
+                    echo "Created folder \"#{crateName}\""
+                rescue SystemCallError => ex
+                    printWarning("The folder \"#{crateName}\" already exists. Files will be downloaded there.")
+                end
+                for file in files
+                    fileName = downloadFiles(file, crateName+"/")
+                    PRINTdownloadFiles(fileName)
+                end
+            else
+                printWarning("The crate \"#{crateName}\" is empty. Skipping.")
             end
-            for file in files
-                fileName = downloadFiles(file, folderName+"/")
-                PRINTdownloadFiles(fileName)
-            end
-            return nil
+            return nil   # this method always returns nil, because it prints everything on the fly.
         else
             printError(STR_FILEID_ERROR, fileID)
         end
@@ -676,6 +683,14 @@ class LetsCrate
             return parseResponse(response)
         else
             printError(STR_CRATEID_ERROR, crateID)
+        end
+    end
+    
+    def downloadAll  # this is the method that actually downloads the file.
+        response = listCrates
+        crates = response['crates']
+        for crate in crates
+            downloadCrates(crate['id'])
         end
     end
     
@@ -997,9 +1012,13 @@ class LetsCrate
         end
         for file in matchedCrate['files']
             ids << file['id']
+        end if matchedCrate['files'] # empty crate protection
+        if ids.count > 0
+            info "Got files: #{ids}"
+            return ids
+        else
+            return nil
         end
-        info "Got files: #{ids}"
-        return ids
     end
 end
 
