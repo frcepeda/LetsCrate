@@ -179,12 +179,20 @@ end
 
 module Conversions
     def ByteCount(bytes, si)
+        #return nil if bytes.nil?
+        #bytes = bytes.to_int
+        #unit = si ? 1000 : 1024
+        #return bytes.to_s+" B" if (bytes < unit)
+        #exp = (Math.log(bytes) / Math.log(unit)).to_int
+        #pre = (si ? ["k", "M", "G", "T", "P", "E"] : ["K", "M", "G", "T", "P", "E"]).slice(exp-1)+(si ? "" : "i")
+        #return "%.1f %sB" % [bytes.to_f / (unit ** exp), pre]   # this is the original code, but I always use base 10.
+        
         return nil if bytes.nil?
         bytes = bytes.to_int
-        unit = si ? 1000 : 1024
+        unit = 1000
         return bytes.to_s+" B" if (bytes < unit)
         exp = (Math.log(bytes) / Math.log(unit)).to_int
-        pre = (si ? ["k", "M", "G", "T", "P", "E"] : ["K", "M", "G", "T", "P", "E"]).slice(exp-1)+(si ? "" : "i")
+        pre = ["k", "M", "G", "T", "P", "E"].slice(exp-1)
         return "%.1f %sB" % [bytes.to_f / (unit ** exp), pre]
     end
 end
