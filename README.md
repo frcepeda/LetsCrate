@@ -8,7 +8,7 @@ Please let me know what you think! You can reach me at frcepeda AT gmail DOT com
 Quick start manual
 ------------------
 
-To use this program, you need to create an account at [Let's Crate](http://letscrate.com), and
+To use this program, you need to create an account at [Let's Crate](http://letscrate.com) and
 to install Typhoeus. You can do that with `gem install typhoeus`.
 
 Every command needs the "-l" switch, with the username and password separated by a
