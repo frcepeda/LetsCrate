@@ -31,8 +31,8 @@ by default.
 Usage
 =====
 
-    Usage: LetsCrate.rb <-l username:password> [options] file1 file2 ...
-       or: LetsCrate.rb <-l username:password> [options] name1 name2 ...
+    Usage: letscrate.rb <-l username:password> [options] file1 file2 ...
+       or: letscrate.rb <-l username:password> [options] name1 name2 ...
 
 	Mandatory arguments:
     -l, --login [username:password]  Login with this username and password
@@ -71,7 +71,7 @@ Login information
 To avoid having to type your credentials every time you want to run this command, make an alias
 in your .bashrc file with something like this:
 
-`alias letscrate = "/path/to/LetsCrate.rb -l 'username:password'"`
+`alias letscrate = "/path/to/letscrate.rb -l 'username:password'"`
 
 IDs
 ---
@@ -81,7 +81,7 @@ To know the ID of your files, use the "--ids" option to list them with their res
 URLs and IDs when executing any command.
 
 For example, you can list all your crates and files with their IDs by typing
-`letscrate -l login:credentials -a --ids`
+`letscrate.rb -l login:credentials -a --ids`
 
 Generally, you don't need to know the ID of a file, but if you do, you can use it
 instead of the name of the files/crates (it's faster).
