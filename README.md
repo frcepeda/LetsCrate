@@ -21,7 +21,7 @@ Example:
     
 After that, you can select an action from the list below and use the command normally.
 
-You can use multiple files, names or crates in the commands whose explanations
+You can use multiple files, names or crates in the commands whose descriptions
 are in plural.
 
 If you use the --regexp function with the commands marked with an asterisk, every argument
@@ -71,13 +71,18 @@ Login information
 To avoid having to type your credentials every time you want to run this command, make an alias
 in your .bashrc file with something like this:
 
-`alias letscrate = "/path/to/script/LetsCrate.rb -l 'username:password'"`
+`alias letscrate = "/path/to/LetsCrate.rb -l 'username:password'"`
 
 IDs
 ---
 
 An ID is a 5 digit identifier used internally by Let's Crate. 
-To know the ID of your files, use the "-a" option to list them with their respective URLs and IDs.  
+To know the ID of your files, use the "--ids" option to list them with their respective
+URLs and IDs when executing any command.
+
+For example, you can list all your crates and files with their IDs by typing
+`letscrate -l login:credentials -a --ids`
+
 Generally, you don't need to know the ID of a file, but if you do, you can use it
 instead of the name of the files/crates (it's faster).
 
