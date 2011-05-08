@@ -620,8 +620,7 @@ class LetsCrate
         else  # that means i have to parse it.
             info "Listing crates with name: #{name[0]}."
             crates = searchCrate(name[0]) # I need to pass the name like that because Ruby groups all variable number arguments into an array.
-            hash = {"crates" => crates}  # PRINTlistCrates expects the original response from the server. This mimics the format of the hash.
-            return hash
+            return crates
         end
     end
     
@@ -800,12 +799,25 @@ class LetsCrate
     
     def PRINTlistCrates(hash)
         return 0 if hash.nil?    # skip the output if hash doesn't exist.
-        if hash.values.include?("failure")
-            printError(hash['message'], @arguments[@argCounter])
-        else
+        if hash.class == Hash
+            if hash.values.include?("failure")
+                printError(hash['message'], @arguments[@argCounter])
+            end
             crates = hash['crates']
             for crate in crates
                 printCrate(crate['name'], crate['short_code'], crate['id'])
+            end
+        else
+            for crate in hash # it's not actually a hash (it's an array), but it made more sense to have it named like that.
+                echo "\n"
+                printCrate(crate['name'], crate['short_code'], crate['id'])
+                if crate['files']      # test if crate is empty
+                    for file in crate['files']
+                        printFile(file['name'], file['size'], file['short_code'], file['id'])
+                    end
+                    else
+                    echo STR_EMPTY_CRATE
+                end
             end
         end
     end
