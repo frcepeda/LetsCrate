@@ -25,7 +25,7 @@ You can use multiple files, names or crates in the commands whose explanations
 are in plural.
 
 If you use the --regexp function with the commands marked with an asterisk, every argument
-will be treated as a regular expression. The search option uses regular expressions
+will be treated as a regular expression. The search and the list options use regular expressions
 by default.
 
 An ID is a 5 digit identifier used internally by Let's Crate. 
