@@ -395,6 +395,10 @@ class App
     
 end
 
+##
+## --- Ends definition of App class.
+##
+
 class LetsCrate
     
     include Everything
@@ -419,35 +423,13 @@ class LetsCrate
         end
         
         if @options.usesCratesIDs
-            
-            if IDsvalid?(@arguments)   #  that means I have to parse all the arguments.
-                info "Crate IDs valid"
-                # YAY! Do nothing.
-            else
-                if @options.regex
-                    info "Crate IDs invalid. Mapping names to crates. Regexp is on."
-                    @arguments = getIDsForCrates!(@arguments)
-                else
-                    info "Crate IDs invalid. Mapping names to crates."
-                    @arguments = getIDsForCrates(@arguments)
-                end
-            end
+            info "This command uses Crate IDs."
+            @arguments = mapCrateIDs(@arguments)
         end
         
         if @options.usesFilesIDs
-            
-            if IDsvalid?(@arguments)   #  that means I have to parse all the arguments.
-                info "File IDs valid."
-                # YAY! Do nothing.
-            else
-                if @options.regex
-                    info "File IDs invalid. Mapping names to files. Regexp is on."
-                    @arguments = getIDsForFiles!(@arguments)
-                else
-                    info "File IDs invalid. Mapping names to files."
-                    @arguments = getIDsForFiles(@arguments)
-                end
-            end
+            info "This command uses File IDs."
+            @arguments = mapFileIDs(@arguments) 
         end
         
         if @arguments.count > 0     # check if command requires extra arguments
@@ -618,8 +600,13 @@ class LetsCrate
             info "Listing all crates."
             return parseResponse(response)
         else  # that means i have to parse it.
-            info "Listing crates with name: #{name[0]}."
-            crates = searchCrate(name[0]) # I need to pass the name like that because Ruby groups all variable number arguments into an array.
+            if IDvalid?(name[0]) # I need to pass the name like that because Ruby groups all variable number arguments into an array.
+                crate = getCrateWithID(name[0])
+                crates = [crate] # The printing method expects an array.
+            else
+                info "Listing crates with name: #{name[0]}."
+                crates = searchCrate(name[0])
+            end
             return crates
         end
     end
@@ -850,7 +837,10 @@ class LetsCrate
         info "Getting IDs for crate names: #{array}"
         ids = []
         for name in array
-            next if IDvalid?(name)
+            if IDvalid?(name)
+                ids << name
+                next
+            end
             crates = searchCrate(name) if @crates.nil?
             for crate in crates
                 ids << crate['id'].to_s
@@ -874,7 +864,10 @@ class LetsCrate
         info "Getting IDs for filenames: #{array}"
         ids = []
         for name in array
-            next if IDvalid?(name)
+            if IDvalid?(name)
+                ids << name
+                next
+            end
             files = searchFile(name)
             for file in files
                 ids << file['id'].to_s
@@ -898,7 +891,10 @@ class LetsCrate
         info "Getting IDs for crate names: #{array}"
         ids = []
         for name in array
-            next if IDvalid?(name)
+            if IDvalid?(name)
+                ids << name
+                next
+            end
             crates = searchCrate(name) if @crates.nil?
             for crate in crates
                 ids << crate['id'].to_s
@@ -912,7 +908,10 @@ class LetsCrate
         info "Getting IDs for filenames: #{array}"
         ids = []
         for name in array
-            next if IDvalid?(name)
+            if IDvalid?(name)
+                ids << name
+                next
+            end
             files = searchFile(name)
             for file in files
                 ids << file['id'].to_s
@@ -1030,6 +1029,45 @@ class LetsCrate
             return ids
         else
             return nil
+        end
+    end
+    
+    # Initial checks on IDs.
+    
+    def mapCrateIDs(array)
+        if @options.regex
+            info "Mapping names to Crate IDs. Regexp is on."
+            array = getIDsForCrates!(array)
+            else
+            info "Mapping names to Crate IDs."
+            array = getIDsForCrates(array)
+        end
+        
+        return array
+    end
+    
+    def mapFileIDs(array)
+        if @options.regex
+            info "Mapping names to file IDs. Regexp is on."
+            array = getIDsForFiles!(array)
+            else
+            info "Mapping names to file IDs."
+            array = getIDsForFiles(array)
+        end
+        
+        return array
+    end
+    
+    # Get crates with ID.
+    
+    def getCrateWithID(id)
+        info "Getting crate with ID: #{id}."
+        @files = listFiles if @files.nil?   # do not query the server each time a search is made.
+        allCrates = @files['crates']
+        for crate in allCrates
+            if crate['id'] == id.to_i
+                return crate
+            end
         end
     end
 end
