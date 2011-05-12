@@ -82,7 +82,7 @@ To know the ID of your files, use the "--ids" option to list them with their res
 URLs and IDs when executing any command.
 
 For example, you can list all your crates and files with their IDs by typing
-`letscrate.rb -l login:credentials -a --ids`
+`letscrate.rb -l username:password -a --ids`
 
 Generally, you don't need to know the ID of a file, but if you do, you can use it
 instead of the name of the files/crates (it's faster).
