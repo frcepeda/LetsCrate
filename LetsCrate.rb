@@ -32,10 +32,11 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.7.7"
+VERSION = "1.7.8"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
-DEBUG = true
+
+$debug = false
 
 # here start the modules
 
@@ -366,6 +367,11 @@ class App
             exit 0
         }
         
+        opts.on(       '--debug', 'Internal use only.' ) {
+            info "Debug mode on."
+            $debug = true
+        }
+        
         opts.parse!(@arguments)
         
         # Errors:
@@ -687,8 +693,9 @@ class LetsCrate
     # ------
     
     def parseResponse(response)
-        puts JSON.parse(response.body) if DEBUG
-        return JSON.parse(response.body)
+        parsed = JSON.parse(response.body)
+        puts parsed if $debug
+        return parsed
     end
     
     # ------
