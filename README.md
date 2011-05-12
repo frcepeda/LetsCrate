@@ -118,6 +118,13 @@ BUGS
 
 * None yet, but please open a ticket (or email me) if you find one.
 
+QUIRKY STUFF
+============
+
+* Let's Crate just added password verification for files (it was previously Crate only), 
+which renders this application useless for downloading them. You can still upload, delete and
+list them, but you can't download them unless you use your browser.
+
 License
 =======
 
