@@ -61,6 +61,7 @@ Usage
     -q, --quiet                      Do not output anything to the terminal
         --version                    Output version
     -h, --help                       Display this screen
+        --debug                      Internal use only.
 
 Tips
 ====
@@ -97,8 +98,8 @@ String Handling
 
 You can type only a fragment of a crate or file's name if you know it's unique. Even if you
 don't specify the --regexp option, the program internally uses *case insensitive* regular
-expressions. For example, you can type only "yell" if one of your crates/files is called "yellow"
-and you know none of the other ones have that exact string in them.
+expressions. For example, you can type only "yell" if one of your crates/files is called
+"Yellow.zip" and you know none of the other ones have that exact string in them.
 
 In the off chance that two names collide (e.g. "apple" and "apples with pears"), you can add
 a '$' to the end of the shorter one ("apple$").
@@ -106,19 +107,20 @@ a '$' to the end of the shorter one ("apple$").
 What is a regular expression?
 -------------------------------
 
-You can read about [regular expressions in Wikipedia](http://en.wikipedia.org/wiki/Regular_expression).
+You can read about 
+[regular expressions in Wikipedia](http://en.wikipedia.org/wiki/Regular_expression).
 
 TO DO
 =====
 
 * Use a configuration file to avoid typing the login credentials each time the command is run.
 
-BUGS
+Bugs
 ====
 
 * None yet, but please open a ticket (or email me) if you find one.
 
-QUIRKY STUFF
+Quirky stuff
 ============
 
 * Let's Crate just added password verification for files (it was previously Crate only), 
