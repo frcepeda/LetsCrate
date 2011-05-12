@@ -35,7 +35,7 @@ require 'json'
 VERSION = "1.7.7"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
-DEBUG = false
+DEBUG = true
 
 # here start the modules
 
@@ -172,6 +172,8 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_TOO_MANY_CRATES = "More than 1 crate matched that name. Please make your query more specific, or use --regexp if you meant this to happen."
     STR_TOO_MANY_FILES = "More than 1 file matched that name. Please make your query more specific, or use --regexp if you meant this to happen."
+    
+    STR_PASSWORD_PROTECTED = "Is the crate password protected? The API doesn't allow downloading files with passwords. Email hi@letscrate.com to ask for that feature."
     
     STR_DELETED = "%s deleted"
     STR_RENAMED = "Renamed %s to %s"
@@ -535,7 +537,9 @@ class LetsCrate
                     printError("The request timed out.", "TimeOut")
                 elsif response.code == 0
                     # Could not get an http response, something's wrong.
+                    # Maybe the file is password protected?
                     printError(response.curl_error_message, "HTTPError")
+                    $stderr.puts STR_PASSWORD_PROTECTED
                 else
                     # Received a non-successful http response.
                     printError("HTTP Error code: "+response.code.to_s, "HTTPError")
