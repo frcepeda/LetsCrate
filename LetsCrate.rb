@@ -58,7 +58,6 @@ end
 module Output
     
     def detect_terminal_size
-        info "Terminal width = #{`tput cols`.to_i}"
         return `tput cols`.to_i    # returns terminal width in characters
     end
     
