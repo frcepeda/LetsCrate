@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "1.7.8"
+VERSION = "1.8"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -63,10 +63,10 @@ module Output
     end
     
     def printError(message, argument)
-        if !(@options.width.nil?)
-            $stderr.puts red("Error:")+" #{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
+        unless @options.width.nil?
+            $stderr.puts red("Error: ")+"#{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
             else
-            $stderr.puts red("Error:")+" #{message}\t<#{argument}>"
+            $stderr.puts red("Error: ")+"#{message}\t<#{argument}>"
         end
     end
     
@@ -153,7 +153,7 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_VERSION = "LetsCrate v#{VERSION} (API Version #{APIVERSION}) by Freddy Roman <frcepeda@gmail.com>"
     
     STR_TOO_MANY_ACTIONS = "More than one action was selected. Please select only one action."
-    
+
     STR_FILEID_ERROR = "A file ID is a 5 digit number. Use -a to list your files's IDs."
     STR_CRATEID_ERROR = "A crate ID is a 5 digit number. Use -A to list your crates's IDs."
     
@@ -178,6 +178,9 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_DELETED = "%s deleted"
     STR_RENAMED = "Renamed %s to %s"
+    
+    STR_TIMEOUT = "The request timed out."
+    STR_HTTPERROR = "Connection error. Code: %s"
 end
 
 module Conversions
@@ -462,7 +465,18 @@ class LetsCrate
                                           :password => @options.password,
                                           )
         
-        return parseResponse(response)
+        if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+            info "Got response from server."
+            return parseResponse(response) # return native Ruby hash instead of JSON.
+        elsif response.timed_out?
+            printError(STR_TIMEOUT, "TimeOut")
+        elsif response.code == 0
+            # Could not get an http response, something's wrong.
+            printError(response.curl_error_message, "HTTPError")
+        else
+            # Received a non-successful http response.
+            printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+        end
     end
     
     def uploadFile(file)
@@ -477,7 +491,24 @@ class LetsCrate
                                           :password => @options.password,
                                           )
         
-            return parseResponse(response)
+            unless response.success?
+                printError(STR_STD_HTTP_ERROR, response.code.to_s)
+                return nil
+            end
+            
+            if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+                info "Got response from server."
+                return parseResponse(response) # return native Ruby hash instead of JSON.
+            elsif response.timed_out?
+                printError(STR_TIMEOUT, "TimeOut")
+            elsif response.code == 0
+                # Could not get an http response, something's wrong.
+                printError(response.curl_error_message, "HTTPError")
+            else
+                # Received a non-successful http response.
+                printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+            end
+            return nil
         else
             printError(STR_CRATEID_ERROR, @options.crateID)
             exit 1
@@ -494,7 +525,19 @@ class LetsCrate
                                                 :password => @options.password,
                                                 )
             
-            return parseResponse(response)
+            if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+                info "Got response from server."
+                return parseResponse(response) # return native Ruby hash instead of JSON.
+            elsif response.timed_out?
+                printError(STR_TIMEOUT, "TimeOut")
+            elsif response.code == 0
+                # Could not get an http response, something's wrong.
+                printError(response.curl_error_message, "HTTPError")
+            else
+                # Received a non-successful http response.
+                printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+            end
+            return nil
         else
             printError(STR_FILEID_ERROR, fileID)
         end
@@ -507,7 +550,19 @@ class LetsCrate
                                                  :password => @options.password,
                                                  )
         
-        return parseResponse(response)
+        if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+            info "Got response from server."
+            return parseResponse(response) # return native Ruby hash instead of JSON.
+        elsif response.timed_out?
+            printError(STR_TIMEOUT, "TimeOut")
+        elsif response.code == 0
+            # Could not get an http response, something's wrong.
+            printError(response.curl_error_message, "HTTPError")
+        else
+            # Received a non-successful http response.
+            printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+        end
+        return nil
     end
     
     def listFileID(fileID)
@@ -517,8 +572,20 @@ class LetsCrate
                                                  :username => @options.username,
                                                  :password => @options.password,
                                                  )
-        
-            return parseResponse(response)
+            
+            if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+                info "Got response from server."
+                return parseResponse(response) # return native Ruby hash instead of JSON.
+            elsif response.timed_out?
+                printError(STR_TIMEOUT, "TimeOut")
+            elsif response.code == 0
+                # Could not get an http response, something's wrong.
+                printError(response.curl_error_message, "HTTPError")
+            else
+                # Received a non-successful http response.
+                printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+            end
+            return nil
         else
             printError(STR_FILEID_ERROR, fileID)
         end
@@ -530,15 +597,17 @@ class LetsCrate
             info "Downloading file #{fileID}."
             longURL = getFileLongURL(fileID)
             name = getFileName(fileID)
-            if File.exists?(dir.nil? ? "#{name}" : "#{dir[0]}#{name}")
-                printWarning("\"#{name}\" already exists. Skipping.")
+            if File.exists?(dir.nil? ? "#{name}" : "#{dir[0]}#{name}") # was I passed the name of a directory to save the files in?
+                printWarning("\"#{name}\" already exists. Skipping.") # whoops, the file already exists in the folder.
             else
                 info "Downloading #{longURL}."
                 file = File.new(dir.nil? ? "#{name}" : "#{dir[0]}#{name}", "w")
                 response = Typhoeus::Request.get("#{longURL}")
+                
                 if response.success?
                     info "Successfuly downloaded file."
                     file.write(response.body)
+                    return name
                 elsif response.timed_out?
                     printError("The request timed out.", "TimeOut")
                 elsif response.code == 0
@@ -551,7 +620,7 @@ class LetsCrate
                     printError("HTTP Error code: "+response.code.to_s, "HTTPError")
                 end
                 file.close
-                return name if response.success?
+                return nil
             end
             return nil
         else
@@ -597,7 +666,19 @@ class LetsCrate
                                                  :password => @options.password,
                                                  )
        
-        return parseResponse(response)
+        if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+            info "Got response from server."
+            return parseResponse(response) # return native Ruby hash instead of JSON.
+        elsif response.timed_out?
+            printError(STR_TIMEOUT, "TimeOut")
+        elsif response.code == 0
+            # Could not get an http response, something's wrong.
+            printError(response.curl_error_message, "HTTPError")
+        else
+            # Received a non-successful http response.
+            printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+        end
+        return nil
     end
     
     def listCrates(*name)
@@ -608,7 +689,20 @@ class LetsCrate
                                              :password => @options.password,
                                              )
             info "Listing all crates."
-            return parseResponse(response)
+            
+            if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+                info "Got response from server."
+                return parseResponse(response) # return native Ruby hash instead of JSON.
+            elsif response.timed_out?
+                printError(STR_TIMEOUT, "TimeOut")
+            elsif response.code == 0
+                # Could not get an http response, something's wrong.
+                printError(response.curl_error_message, "HTTPError")
+            else
+                # Received a non-successful http response.
+                printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+            end
+            return nil
         else  # that means i have to parse it.
             if IDvalid?(name[0]) # I need to pass the name like that because Ruby groups all variable number arguments into an array.
                 crate = getCrateWithID(name[0])
@@ -659,7 +753,19 @@ class LetsCrate
                                                  :password => @options.password,
                                                  )
         
-            return parseResponse(response)
+            if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+                info "Got response from server."
+                return parseResponse(response) # return native Ruby hash instead of JSON.
+            elsif response.timed_out?
+                printError(STR_TIMEOUT, "TimeOut")
+            elsif response.code == 0
+                # Could not get an http response, something's wrong.
+                printError(response.curl_error_message, "HTTPError")
+            else
+                # Received a non-successful http response.
+                printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+            end
+            return nil
         else
             printError(STR_CRATEID_ERROR, @options.crateID)
             exit 1
@@ -676,15 +782,27 @@ class LetsCrate
                                                  :password => @options.password,
                                                  )
       
-            return parseResponse(response)
+            if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+                info "Got response from server."
+                return parseResponse(response) # return native Ruby hash instead of JSON.
+            elsif response.timed_out?
+                printError(STR_TIMEOUT, "TimeOut")
+            elsif response.code == 0
+                # Could not get an http response, something's wrong.
+                printError(response.curl_error_message, "HTTPError")
+            else
+                # Received a non-successful http response.
+                printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+            end
+            return nil
         else
             printError(STR_CRATEID_ERROR, crateID)
         end
     end
     
-    def downloadAll  # this is the method that actually downloads the file.
-        response = listCrates
-        crates = response['crates']
+    def downloadAll
+        @files = listFiles if @files.nil?   # do not query the server each time a search is made.
+        crates = @files['crates']
         for crate in crates
             downloadCrates(crate['id'])
         end
@@ -701,7 +819,7 @@ class LetsCrate
     # ------
     
     def PRINTtestCredentials(hash)
-        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        return nil if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("success")
             echo STR_VALID_CREDENTIALS
             else
@@ -710,7 +828,7 @@ class LetsCrate
     end
     
     def PRINTuploadFile(hash)
-        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        return nil if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
@@ -719,7 +837,7 @@ class LetsCrate
     end
     
     def PRINTdeleteFile(hash)
-        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        return nil if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
@@ -728,7 +846,7 @@ class LetsCrate
     end
     
     def PRINTlistFiles(hash)
-        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        return nil if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
                 printError(hash['message'], @arguments[@argCounter])
         else
@@ -778,7 +896,7 @@ class LetsCrate
     end
     
     def PRINTlistFileID(hash)
-        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        return nil if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
@@ -787,7 +905,7 @@ class LetsCrate
     end
     
     def PRINTcreateCrate(hash)
-        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        return nil if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
@@ -796,7 +914,7 @@ class LetsCrate
     end
     
     def PRINTlistCrates(hash)
-        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        return nil if hash.nil?    # skip the output if hash doesn't exist.
         if hash.class == Hash
             if hash.values.include?("failure")
                 printError(hash['message'], @arguments[@argCounter])
@@ -825,7 +943,7 @@ class LetsCrate
     end
     
     def PRINTrenameCrate(hash)
-        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        return nil if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
@@ -834,12 +952,16 @@ class LetsCrate
     end
     
     def PRINTdeleteCrate(hash)
-        return 0 if hash.nil?    # skip the output if hash doesn't exist.
+        return nil if hash.nil?    # skip the output if hash doesn't exist.
         if hash.values.include?("failure")
             printError(hash['message'], @arguments[@argCounter])
         else
             echo STR_DELETED % [@prevNames[@argCounter]]
         end
+    end
+    
+    def PRINTdownloadAll
+        # do nothing. I already printed everything on the fly.
     end
     
     # Map names to IDs
