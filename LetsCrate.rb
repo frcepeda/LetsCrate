@@ -606,7 +606,7 @@ class LetsCrate
                 if response.success?
                     info "Successfuly downloaded file."
                     file.write(response.body)
-                    return name
+                    return name # return the new file's name
                 elsif response.timed_out?
                     printError("The request timed out.", "TimeOut")
                 elsif response.code == 0
