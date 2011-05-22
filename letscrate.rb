@@ -34,7 +34,7 @@ require 'json'
 require 'digest/sha1'
 require 'date'
 
-VERSION = "v1.9.5"
+VERSION = "v1.9.5.1"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -199,8 +199,7 @@ module IntegrityChecks
     end
     
     def requestSuccess?(response) # This checks if the request was successful or prints error messages if it went wrong.
-        if response.success? 
-            info "Got response from server."
+        if response.success?
             return true
         elsif response.timed_out?
             printError(STR_TIMEOUT, "TimeOut")
@@ -447,6 +446,8 @@ class App
             while Math.log(current).floor + 1 < Math.log(local).floor + 1
                 current = current * 10
             end
+            
+            info "Server has version #{data[0][1..-1]}."
             
             if local < current
                 info "New version detected. #{data[0]}"
