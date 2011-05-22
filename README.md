@@ -1,9 +1,15 @@
+**Whoops, Let's Crate seems to be acting up a bit. I'm getting 502 errors whenever I try
+to connect with their [API](http://letscrate.com/api). Can someone confirm this for me?
+Authentication seems to pass through, but I get the error afterwards. To check if it 
+works for you, use the -t option like this: `letscrate.rb -l username:password -t`. 
+It'll tell you if something's wrong.**
+
 LetsCrate
 =========
 
 This is an unofficial command line client for [Let's Crate](http://letscrate.com) written in Ruby.
 
-Please let me know what you think! You can reach me at frcepeda AT gmail DOT com
+Please let me know what you think! You can reach me at <frcepeda@gmail.com>.
 
 Quick start manual
 ==================
