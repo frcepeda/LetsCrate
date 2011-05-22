@@ -34,7 +34,7 @@ require 'json'
 require 'digest/sha1'
 require 'date'
 
-VERSION = "v1.9.4"
+VERSION = "v1.9.5"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -129,6 +129,8 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_FILEID_ERROR = "A file ID is a 5 digit number. Use -a to list your files's IDs."
     STR_CRATEID_ERROR = "A crate ID is a 5 digit number. Use -A to list your crates's IDs."
+    
+    STR_COULDNT_GET_FILES = "Couldn't download file list. Exiting."
     
     STR_RTFM = "Use the -h flag for help, or read the README."
     
@@ -434,10 +436,27 @@ class App
         
         if requestSuccess?(response)
             data = response.body.split
-            if VERSION.to_s != data[0].to_s
+            
+            local = VERSION.split(".").join[1..-1].to_i
+            current = data[0].to_s.split(".").join[1..-1].to_i
+            
+            while Math.log(local).floor + 1 < Math.log(current).floor + 1 # performs some padding so numbers have the same amount of digits
+                local = local * 10
+            end
+            
+            while Math.log(current).floor + 1 < Math.log(local).floor + 1
+                current = current * 10
+            end
+            
+            if local < current
                 info "New version detected. #{data[0]}"
                 return false
             end
+            
+            if local > current
+                printWarning "Using newer version than server."
+            end
+            
             return true
         else
             printWarning(STR_COULDNT_CHECK_VERSION)
@@ -448,7 +467,7 @@ class App
         puts STR_NEW_VERSION
         printf STR_NEW_VERSION_PROMPT
         answer = gets
-        if answer == "y\n" # The \n is needed because there's a newline at the end.
+        if answer.downcase == "y\n" # The \n is needed because there's a newline at the end.
             update!
         end
     end
@@ -636,7 +655,8 @@ class LetsCrate
             # Received a non-successful http response.
             printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
         end
-        return nil
+        printError(STR_COULDNT_GET_FILES, nil)
+        exit 1 # I can't do anything without the file list, so I'd better quit now.
     end
     
     def listFileID(fileID)
