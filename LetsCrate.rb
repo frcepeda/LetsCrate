@@ -430,14 +430,12 @@ class App
         puts "There is a new version available."
         printf "Would you like to download it now? (y/n) "
         answer = gets
-        if answer = "y"
-            update!
-        end
+        update!
     end
     
     def update!
         response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/letscrate.rb")
-        file = File.new(__FILE__)
+        file = File.new("#{__FILE__}", "w+")
         file.write(response.body)
         file.close
     end
