@@ -149,7 +149,7 @@ module IntegrityChecks
         end
     end
     
-    def requestSuccess?(request) # This checks if the request was successful or prints error messages if it went wrong.
+    def requestSuccess?(response) # This checks if the request was successful or prints error messages if it went wrong.
         if response.success? 
             info "Got response from server."
             return true
@@ -201,7 +201,7 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_DELETED = "%s deleted"
     STR_RENAMED = "Renamed %s to %s"
     
-    STR_UPDATED = "#{green('SUCCESS!')} LetsCrate has been updated to the latest version!"
+    STR_UPDATED = "SUCCESS! LetsCrate has been updated to the latest version!"
     STR_REENTER_UPDATED = "Please re-enter your latest command to use it."
     STR_NEW_VERSION = "There is a new version available."
     STR_NEW_VERSION_PROMPT = "Would you like to download it now? (y/n) "
@@ -431,7 +431,7 @@ class App
         info "Checking for new versions."
         response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/.current")
         
-        if responseSuccess?(response)
+        if requestSuccess?(response)
             data = response.body.split
             unless VERSION == data[0]
                 info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][1..5]}"
@@ -461,7 +461,7 @@ class App
     
     def update!
         response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/LetsCrate.rb")
-        if responseSuccess?(response)
+        if requestSuccess?(response)
             file = File.new("#{__FILE__}", "w+")
             file.write(response.body)
             file.close
