@@ -441,6 +441,8 @@ class App
             sha1 = Digest::SHA1.hexdigest "__FILE__" # gets SHA1 of current script.
             if sha1.to_s != data[1].to_s
                 info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][0..4]}"
+                info sha1.to_s
+                info data[1].to_s
                 if Date::today() <= Date::new(data[2].to_i,data[3].to_i,data[4].to_i)
                     return false
                 end
