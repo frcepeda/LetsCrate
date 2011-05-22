@@ -454,7 +454,7 @@ class App
     end
     
     def update!
-        response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/LetsCrate.rb")
+        response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/letscrate.rb")
         if requestSuccess?(response)
             file = File.new("#{__FILE__}", "w+")
             file.write(response.body)
