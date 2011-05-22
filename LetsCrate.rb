@@ -34,7 +34,7 @@ require 'json'
 require 'digest/sha1'
 require 'date'
 
-VERSION = "1.8"
+VERSION = "1.9"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -64,22 +64,27 @@ module Output
     end
     
     def printError(message, argument)
-        unless @options.width.nil?
-            $stderr.puts red("Error: ")+"#{message}%#{@options.width-(message.length+7)}s" % "<#{argument}>"
+        if argument == nil
+            $stderr.puts red("Error: ")+message
+            return
+        end
+        
+        unless $width.nil?
+            $stderr.puts red("Error: ")+"#{message}%#{$width-(message.length+7)}s" % "<#{argument}>"
             else
             $stderr.puts red("Error: ")+"#{message}\t<#{argument}>"
         end
     end
     
     def printWarning(message)
-        $stderr.puts yellow("Warning:")+" #{message}"
+        $stderr.puts yellow("Warning: ")+message
     end
     
     def printCrate(name, short_code, id)
         data = @options.printIDs ? "  URL: http://lts.cr/#{short_code}  ID: #{id}" : "  URL: http://lts.cr/#{short_code}"
-        name = truncateName(name, @options.width-data.length) if name.length > (@options.width-data.length)
-        if !(@options.width.nil?)            
-            echo "#{name}%#{@options.width-(name.length)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
+        name = truncateName(name, $width-data.length) if name.length > ($width-data.length)
+        if !($width.nil?)            
+            echo "#{name}%#{$width-(name.length)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
             else
             echo "* #{name}\t\t#{data}"
         end
@@ -87,9 +92,9 @@ module Output
     
     def printFile(name, size, short_code, id)
         data = @options.printIDs ? "  #{ByteCount(size, true)}  URL: http://lts.cr/#{short_code}  ID: #{id}" : "  #{ByteCount(size, true)}  URL: http://lts.cr/#{short_code}"
-        name = truncateName(name, (@options.width-data.length)-2) if name.length > (@options.width-data.length)-2
-        if !(@options.width.nil?)            
-            echo "* #{name}%#{@options.width-(name.length+2)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
+        name = truncateName(name, ($width-data.length)-2) if name.length > ($width-data.length)-2
+        if !($width.nil?)            
+            echo "* #{name}%#{$width-(name.length+2)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
             else
             echo "* #{name}\t\t#{data}"
         end
@@ -144,6 +149,22 @@ module IntegrityChecks
         end
     end
     
+    def requestSuccess?(request) # This checks if the request was successful or prints error messages if it went wrong.
+        if response.success? 
+            info "Got response from server."
+            return true
+        elsif response.timed_out?
+            printError(STR_TIMEOUT, "TimeOut")
+        elsif response.code == 0
+            # Could not get an http response, something's wrong.
+            printError(response.curl_error_message, "HTTPError")
+        else
+            # Received a non-successful http response.
+            printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+        end
+        return false
+    end
+    
 end
 
 module Strings   # this module contains almost all the strings used in the program
@@ -179,6 +200,14 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_DELETED = "%s deleted"
     STR_RENAMED = "Renamed %s to %s"
+    
+    STR_UPDATED = "#{green('SUCCESS!')} LetsCrate has been updated to the latest version!"
+    STR_REENTER_UPDATED = "Please re-enter your latest command to use it."
+    STR_NEW_VERSION = "There is a new version available."
+    STR_NEW_VERSION_PROMPT = "Would you like to download it now? (y/n) "
+    STR_COULDNT_CHECK_VERSION = "Couldn't check for new versions."
+    STR_COULDNT_DOWNLOAD_NEW_VERSION = "Couldn't download new version."
+    
     
     STR_TIMEOUT = "The request timed out."
     STR_HTTPERROR = "Connection error. Code: %s"
@@ -230,7 +259,7 @@ class App
         @options.action = nil    # this will be performed by the LetsCrate class
         @options.verbose = false
         @options.quiet = false    # if true, nothing will be printed to the screen. (aside from errors)
-        @options.width = detect_terminal_size   # determine terminal's width
+        $width = detect_terminal_size   # determine terminal's width
         @options.usesFilesIDs = false    # this triggers ID checks on the arguments if set to true
         @options.usesCratesIDs = false   # same as above but with crates
         @options.regex = false    # if set to true, all names are treated as regular expressions
@@ -401,7 +430,8 @@ class App
     def latestversion?
         info "Checking for new versions."
         response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/.current")
-        if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+        
+        if responseSuccess?(response)
             data = response.body.split
             unless VERSION == data[0]
                 info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][1..5]}"
@@ -415,32 +445,32 @@ class App
                     return false
                 end
             end
-        elsif response.timed_out?
-            printError(STR_TIMEOUT, "TimeOut")
-        elsif response.code == 0
-            # Could not get an http response, something's wrong.
-            printError(response.curl_error_message, "HTTPError")
         else
-            # Received a non-successful http response.
-            printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+            printWarning(STR_COULDNT_CHECK_VERSION)
         end
     end
     
     def autoUpdate
-        puts "There is a new version available."
-        printf "Would you like to download it now? (y/n) "
+        puts STR_NEW_VERSION
+        printf STR_NEW_VERSION_PROMPT
         answer = gets
-        update!
+        if answer == "y\n" # The \n is needed because there's a newline at the end.
+            update!
+        end
     end
     
     def update!
         response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/LetsCrate.rb")
-        file = File.new("#{__FILE__}", "w+")
-        file.write(response.body)
-        file.close
-        puts "SUCCESS! LetsCrate has been updated to the latest version!"
-        puts "Please re-enter your latest command to use it."
-        exit 0
+        if responseSuccess?(response)
+            file = File.new("#{__FILE__}", "w+")
+            file.write(response.body)
+            file.close
+            puts STR_UPDATED
+            puts STR_REENTER_UPDATED
+            exit 0
+        else
+            printError(STR_COULDNT_DOWNLOAD_NEW_VERSION, nil)
+        end
     end
     
     def run
@@ -917,7 +947,7 @@ class LetsCrate
     
     def PRINTdownloadFiles(name)
         return 0 if name.nil?    # skip the output if name doesn't exist.
-        name = truncateName(name, @options.width-12) if name.length > @options.width-12
+        name = truncateName(name, $width-12) if name.length > $width-12
         echo "#{name} downloaded."
     end
         
