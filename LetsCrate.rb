@@ -434,13 +434,13 @@ class App
         if requestSuccess?(response)
             data = response.body.split
             unless VERSION == data[0]
-                info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][1..5]}"
+                info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][0..4]}"
                 return false
             end
             
             sha1 = Digest::SHA1.hexdigest "__FILE__" # gets SHA1 of current script.
             unless sha1 == data[1]
-                info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][1..5]}"
+                info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][0..4]}"
                 if Date::today() < Date::new(data[2].to_i,data[3].to_i,data[4].to_i)
                     return false
                 end
