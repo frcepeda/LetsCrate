@@ -427,7 +427,19 @@ class App
     end
     
     def autoUpdate
-        
+        puts "There is a new version available."
+        printf "Would you like to download it now? (y/n) "
+        answer = gets
+        if answer = "y"
+            update!
+        end
+    end
+    
+    def update!
+        response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/letscrate.rb")
+        file = File.new(__FILE__)
+        file.write(response.body)
+        file.close
     end
     
     def run
