@@ -34,7 +34,7 @@ require 'json'
 require 'digest/sha1'
 require 'date'
 
-VERSION = "12309484230a"
+VERSION = "v1.9.3"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -433,7 +433,7 @@ class App
         
         if requestSuccess?(response)
             data = response.body.split
-            if VERSION.to_s == data[0].to_s
+            if VERSION.to_s != data[0].to_s
                 info "New version detected. v#{data[0]}"
                 return false
             end
