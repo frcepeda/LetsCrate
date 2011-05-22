@@ -433,7 +433,7 @@ class App
         
         if requestSuccess?(response)
             data = response.body.split
-            if VERSION.to_s != data[0].to_s
+            if VERSION.to_i < data[0].to_i
                 info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][0..4]}"
                 return false
             end
