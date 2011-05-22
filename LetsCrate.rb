@@ -34,7 +34,7 @@ require 'json'
 require 'digest/sha1'
 require 'date'
 
-VERSION = "1.9.1"
+VERSION = "1.9.2"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -434,18 +434,8 @@ class App
         if requestSuccess?(response)
             data = response.body.split
             if VERSION.to_i < data[0].to_i
-                info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][0..4]}"
+                info "New version detected. v#{data[0]}"
                 return false
-            end
-            
-            sha1 = Digest::SHA1.hexdigest "__FILE__" # gets SHA1 of current script.
-            if sha1.to_s != data[1].to_s
-                info "New version exists. v#{data[0]}, Date: #{data[4]+'/'+data[3]+'/'+data[2]}, SHA1: #{data[1][0..4]}"
-                info sha1.to_s
-                info data[1].to_s
-                if Date::today() <= Date::new(data[2].to_i,data[3].to_i,data[4].to_i)
-                    return false
-                end
             end
             return true
         else
