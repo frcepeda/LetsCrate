@@ -439,6 +439,8 @@ class App
         file.write(response.body)
         file.close
         puts "SUCCESS! LetsCrate has been updated to the latest version!"
+        puts "Please re-enter your latest command to use it."
+        exit 0
     end
     
     def run
