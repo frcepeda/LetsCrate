@@ -152,7 +152,7 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_DELETED = "%s deleted"
     STR_RENAMED = "Renamed %s to %s"
     
-    STR_UPDATED = "SUCCESS! LetsCrate has been updated to the latest version!"
+    STR_UPDATED = "\e[#{32}mSUCCESS! LetsCrate has been updated to the latest version!\e[0m" # this makes the text green.
     STR_REENTER_UPDATED = "Please re-enter your latest command to start using the new version."
     STR_NEW_VERSION = "There is a new version available."
     STR_NEW_VERSION_PROMPT = "Would you like to download it now? (y/n) "
