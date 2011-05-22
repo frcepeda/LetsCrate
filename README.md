@@ -1,7 +1,8 @@
 **Whoops, Let's Crate seems to be acting up a bit. I'm getting 502 errors whenever I try
 to connect with their [API](http://letscrate.com/api). Can someone confirm this for me?
-Authentication seems to pass through, but I get the error afterwards. To check if it 
-works for you, use the -t option like this: `letscrate.rb -l username:password -t`. 
+Authentication seems to pass through, but I get the error afterwards.**
+
+**To check if it works for you, use the -t option like this: `letscrate.rb -l username:password -t`. 
 It'll tell you if something's wrong.**
 
 LetsCrate
