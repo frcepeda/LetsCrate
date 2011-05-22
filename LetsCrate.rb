@@ -31,6 +31,7 @@ require 'optparse'
 require 'ostruct'
 require 'typhoeus'
 require 'json'
+require 'digest/sha1'
 
 VERSION = "1.8"
 APIVERSION = "1"
@@ -396,7 +397,42 @@ class App
         end
     end
     
+    def latestversion?
+        info "Checking for new versions."
+        response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/.current")
+        if response.success? # This checks if the request was successful or prints error messages if it went wrong.
+            data = response.body.split
+            unless VERSION == data[0]
+                info "New version exists. v#{data[0]}, SHA1: #{data[1][1..5]}"
+                return false
+            end
+            
+            sha1 = Digest::SHA1.hexdigest "__FILE__" # gets SHA1 of current script.
+            unless sha1 == data[1]
+                info "New version exists. v#{data[0]}, SHA1: #{data[1][1..5]}"
+                if Date::Today < Date::new(data[2],data[3],data[4])
+                    return false
+            end
+        elsif response.timed_out?
+            printError(STR_TIMEOUT, "TimeOut")
+        elsif response.code == 0
+            # Could not get an http response, something's wrong.
+            printError(response.curl_error_message, "HTTPError")
+        else
+            # Received a non-successful http response.
+            printError(STR_HTTPERROR % response.code.to_s, "HTTPError")
+        end
+    end
+    
+    def autoUpdate
+        
+    end
+    
     def run
+        
+        unless latestversion?
+            autoUpdate
+        end
         
         crate = LetsCrate.new(@options, @arguments)
         crate.run
