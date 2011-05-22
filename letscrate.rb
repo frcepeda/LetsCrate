@@ -69,10 +69,10 @@ module Output
             return
         end
         
-        unless $width.nil?
-            $stderr.puts red("Error: ")+"#{message}%#{$width-(message.length+7)}s" % "<#{argument}>"
-            else
+        if $width.nil?
             $stderr.puts red("Error: ")+"#{message}\t<#{argument}>"
+        else
+            $stderr.puts red("Error: ")+"#{message}%#{$width-(message.length+7)}s" % "<#{argument}>"
         end
     end
     
@@ -83,29 +83,25 @@ module Output
     def printCrate(name, short_code, id)
         data = @options.printIDs ? "  URL: http://lts.cr/#{short_code}  ID: #{id}" : "  URL: http://lts.cr/#{short_code}"
         name = truncateName(name, $width-data.length) if name.length > ($width-data.length)
-        if !($width.nil?)            
-            echo "#{name}%#{$width-(name.length)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
-            else
+        if $width.nil?
             echo "* #{name}\t\t#{data}"
+        else
+            echo "#{name}%#{$width-(name.length)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
         end
     end
     
     def printFile(name, size, short_code, id)
-        data = @options.printIDs ? "  #{ByteCount(size, true)}  URL: http://lts.cr/#{short_code}  ID: #{id}" : "  #{ByteCount(size, true)}  URL: http://lts.cr/#{short_code}"
+        data = @options.printIDs ? "  #{ByteCount(size)}  URL: http://lts.cr/#{short_code}  ID: #{id}" : "  #{ByteCount(size)}  URL: http://lts.cr/#{short_code}"
         name = truncateName(name, ($width-data.length)-2) if name.length > ($width-data.length)-2
-        if !($width.nil?)            
-            echo "* #{name}%#{$width-(name.length+2)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
-            else
+        if $width.nil?
             echo "* #{name}\t\t#{data}"
+        else
+            echo "* #{name}%#{$width-(name.length+2)}s\n" % data  # this works by getting the remaining available characters and using %-#s to align to the right.
         end
     end
     
     def truncateName(name, length)
-        if length.even?
-            return name[0..((length.to_f/2)-2).truncate]+"..."+name[-(((length.to_f/2)-2).truncate)..-1]
-        else
-            return name[0..((length.to_f/2)-1).truncate]+"..."+name[-(((length.to_f/2)-2).truncate)..-1]
-        end
+        return name[0..((length.to_f/2)-(length.even? 2 : 1)).truncate]+"..."+name[-(((length.to_f/2)-2).truncate)..-1]
     end
     
     def echo(argument)    #  this behaves exactly like puts, unless quiet is on. Use for all output messages.
@@ -189,12 +185,12 @@ module IntegrityChecks
             results << IDvalid?(id)
         end
         
-        unless results.include?(false)
-            info "All IDs are valid."
-            return true
-        else
+        if results.include?(false)
             info "At least one ID isn't valid."
             return false
+        else
+            info "All IDs are valid."
+            return true
         end
     end
     
@@ -216,15 +212,7 @@ module IntegrityChecks
 end
 
 module Conversions
-    def ByteCount(bytes, si)
-        #return nil if bytes.nil?
-        #bytes = bytes.to_int
-        #unit = si ? 1000 : 1024
-        #return bytes.to_s+" B" if (bytes < unit)
-        #exp = (Math.log(bytes) / Math.log(unit)).to_int
-        #pre = (si ? ["k", "M", "G", "T", "P", "E"] : ["K", "M", "G", "T", "P", "E"]).slice(exp-1)+(si ? "" : "i")
-        #return "%.1f %sB" % [bytes.to_f / (unit ** exp), pre]   # this is the original code, but I always use base 10.
-        
+    def ByteCount(bytes)
         return nil if bytes.nil?
         bytes = bytes.to_int
         unit = 1000
@@ -584,11 +572,6 @@ class LetsCrate
                                           :username => @options.username,
                                           :password => @options.password,
                                           )
-        
-            unless response.success?
-                printError(STR_STD_HTTP_ERROR, response.code.to_s)
-                return nil
-            end
             
             if response.success? # This checks if the request was successful or prints error messages if it went wrong.
                 info "Got response from server."
