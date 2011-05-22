@@ -34,7 +34,7 @@ require 'json'
 require 'digest/sha1'
 require 'date'
 
-VERSION = "v1.9.3"
+VERSION = "v1.9.4"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
@@ -118,7 +118,54 @@ module Output
     
 end
 
+module Strings   # this module contains almost all the strings used in the program
+    
+    STR_BANNER = "Usage: #{File.basename(__FILE__)} <-l username:password> [options] file1 file2 ...\n"+ 
+    "   or: #{File.basename(__FILE__)} <-l username:password> [options] name1 name2 ..."
+    
+    STR_VERSION = "LetsCrate v#{VERSION} (API Version #{APIVERSION}) by Freddy Roman <frcepeda@gmail.com>"
+    
+    STR_TOO_MANY_ACTIONS = "More than one action was selected. Please select only one action."
+    
+    STR_FILEID_ERROR = "A file ID is a 5 digit number. Use -a to list your files's IDs."
+    STR_CRATEID_ERROR = "A crate ID is a 5 digit number. Use -A to list your crates's IDs."
+    
+    STR_RTFM = "Use the -h flag for help, or read the README."
+    
+    STR_ACCOUNT_NEEDED = "You need to an account to use the LetsCrate API."
+    STR_LOGIN_WITH_L_SWITCH = "Use the \"-l\" switch to specify your login credentials"
+    STR_CREDENTIALS_ERROR = "Credentials invalid, please input them in the format \"username:password\""
+    
+    STR_VALID_CREDENTIALS = "The credentials are valid"
+    STR_INVALID_CREDENTIALS = "The credentials are invalid"
+    
+    STR_EMPTY_CRATE = "* Crate is empty."
+    
+    STR_NO_FILES_FOUND = "No files were found that match that name."
+    STR_NO_CRATES_FOUND = "No crates were found that match that name."
+    
+    STR_TOO_MANY_CRATES = "More than 1 crate matched that name. Please make your query more specific, or use --regexp if you meant this to happen."
+    STR_TOO_MANY_FILES = "More than 1 file matched that name. Please make your query more specific, or use --regexp if you meant this to happen."
+    
+    STR_PASSWORD_PROTECTED = "Is the crate password protected? The API doesn't allow downloading files with passwords. Email hi@letscrate.com to ask for that feature."
+    
+    STR_DELETED = "%s deleted"
+    STR_RENAMED = "Renamed %s to %s"
+    
+    STR_UPDATED = "SUCCESS! LetsCrate has been updated to the latest version!"
+    STR_REENTER_UPDATED = "Please re-enter your latest command to start using the new version."
+    STR_NEW_VERSION = "There is a new version available."
+    STR_NEW_VERSION_PROMPT = "Would you like to download it now? (y/n) "
+    STR_COULDNT_CHECK_VERSION = "Couldn't check for new versions."
+    STR_COULDNT_DOWNLOAD_NEW_VERSION = "Couldn't download new version."
+    
+    STR_TIMEOUT = "The request timed out."
+    STR_HTTPERROR = "Connection error. Code: %s"
+end
+
 module IntegrityChecks
+    
+    include Strings
     
     def IDvalid?(id)
         info "Testing ID: #{id}"
@@ -165,52 +212,6 @@ module IntegrityChecks
         return false
     end
     
-end
-
-module Strings   # this module contains almost all the strings used in the program
-    
-    STR_BANNER = "Usage: #{File.basename(__FILE__)} <-l username:password> [options] file1 file2 ...\n"+ 
-    "   or: #{File.basename(__FILE__)} <-l username:password> [options] name1 name2 ..."
-    
-    STR_VERSION = "LetsCrate v#{VERSION} (API Version #{APIVERSION}) by Freddy Roman <frcepeda@gmail.com>"
-    
-    STR_TOO_MANY_ACTIONS = "More than one action was selected. Please select only one action."
-
-    STR_FILEID_ERROR = "A file ID is a 5 digit number. Use -a to list your files's IDs."
-    STR_CRATEID_ERROR = "A crate ID is a 5 digit number. Use -A to list your crates's IDs."
-    
-    STR_RTFM = "Use the -h flag for help, or read the README."
-    
-    STR_ACCOUNT_NEEDED = "You need to an account to use the LetsCrate API."
-    STR_LOGIN_WITH_L_SWITCH = "Use the \"-l\" switch to specify your login credentials"
-    STR_CREDENTIALS_ERROR = "Credentials invalid, please input them in the format \"username:password\""
-    
-    STR_VALID_CREDENTIALS = "The credentials are valid"
-    STR_INVALID_CREDENTIALS = "The credentials are invalid"
-    
-    STR_EMPTY_CRATE = "* Crate is empty."
-
-    STR_NO_FILES_FOUND = "No files were found that match that name."
-    STR_NO_CRATES_FOUND = "No crates were found that match that name."
-    
-    STR_TOO_MANY_CRATES = "More than 1 crate matched that name. Please make your query more specific, or use --regexp if you meant this to happen."
-    STR_TOO_MANY_FILES = "More than 1 file matched that name. Please make your query more specific, or use --regexp if you meant this to happen."
-    
-    STR_PASSWORD_PROTECTED = "Is the crate password protected? The API doesn't allow downloading files with passwords. Email hi@letscrate.com to ask for that feature."
-    
-    STR_DELETED = "%s deleted"
-    STR_RENAMED = "Renamed %s to %s"
-    
-    STR_UPDATED = "SUCCESS! LetsCrate has been updated to the latest version!"
-    STR_REENTER_UPDATED = "Please re-enter your latest command to start using the new version."
-    STR_NEW_VERSION = "There is a new version available."
-    STR_NEW_VERSION_PROMPT = "Would you like to download it now? (y/n) "
-    STR_COULDNT_CHECK_VERSION = "Couldn't check for new versions."
-    STR_COULDNT_DOWNLOAD_NEW_VERSION = "Couldn't download new version."
-    
-    
-    STR_TIMEOUT = "The request timed out."
-    STR_HTTPERROR = "Connection error. Code: %s"
 end
 
 module Conversions
@@ -434,7 +435,7 @@ class App
         if requestSuccess?(response)
             data = response.body.split
             if VERSION.to_s != data[0].to_s
-                info "New version detected. v#{data[0]}"
+                info "New version detected. #{data[0]}"
                 return false
             end
             return true
