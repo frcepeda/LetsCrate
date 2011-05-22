@@ -438,6 +438,7 @@ class App
         file = File.new("#{__FILE__}", "w+")
         file.write(response.body)
         file.close
+        puts "SUCCESS! LetsCrate has been updated to the latest version!"
     end
     
     def run
