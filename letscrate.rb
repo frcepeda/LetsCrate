@@ -101,7 +101,7 @@ module Output
     end
     
     def truncateName(name, length)
-        return name[0..((length.to_f/2)-(length.even? 2 : 1)).truncate]+"..."+name[-(((length.to_f/2)-2).truncate)..-1]
+        return name[0..((length.to_f/2)-(length.even? ? 2 : 1)).truncate]+"..."+name[-(((length.to_f/2)-2).truncate)..-1]
     end
     
     def echo(argument)    #  this behaves exactly like puts, unless quiet is on. Use for all output messages.
