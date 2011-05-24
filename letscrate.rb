@@ -34,7 +34,7 @@ require 'json'
 require 'digest/sha1'
 require 'date'
 
-VERSION = "v1.9.5.1"
+VERSION = "v1.9.6"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 
