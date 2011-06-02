@@ -31,12 +31,11 @@ require 'optparse'
 require 'ostruct'
 require 'typhoeus'
 require 'json'
-require 'digest/sha1'
-require 'date'
 
-VERSION = "v1.9.6"
+VERSION = "v1.10"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
+ConfigFile = "~/.config/letscrate/config"
 
 $debug = false
 
@@ -117,7 +116,7 @@ end
 module Strings   # this module contains almost all the strings used in the program
     
     STR_BANNER = "Usage: #{File.basename(__FILE__)} <-l username:password> [options] file1 file2 ...\n"+ 
-    "   or: #{File.basename(__FILE__)} <-l username:password> [options] name1 name2 ..."
+                 "   or: #{File.basename(__FILE__)} <-l username:password> [options] name1 name2 ..."
     
     STR_VERSION = "LetsCrate v#{VERSION} (API Version #{APIVERSION}) by Freddy Roman <frcepeda@gmail.com>"
     
@@ -130,12 +129,12 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_RTFM = "Use the -h flag for help, or read the README."
     
-    STR_ACCOUNT_NEEDED = "You need to an account to use the LetsCrate API."
-    STR_LOGIN_WITH_L_SWITCH = "Use the \"-l\" switch to specify your login credentials"
+    STR_ACCOUNT_NEEDED = "You need to have an account to use the Let's Crate API."
+    STR_LOGIN_WITH_L_SWITCH = "If you don't have one yet, you can create an account at letscrate.com.\nUse the \"-l\" switch to specify your login credentials."
     STR_CREDENTIALS_ERROR = "Credentials invalid, please input them in the format \"username:password\""
     
-    STR_VALID_CREDENTIALS = "The credentials are valid"
-    STR_INVALID_CREDENTIALS = "The credentials are invalid"
+    STR_VALID_CREDENTIALS = "The credentials are valid."
+    STR_INVALID_CREDENTIALS = "The credentials are invalid."
     
     STR_EMPTY_CRATE = "* Crate is empty."
     
@@ -147,8 +146,8 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_PASSWORD_PROTECTED = "Is the crate password protected? The API doesn't allow downloading files with passwords. Email hi@letscrate.com to ask for that feature."
     
-    STR_DELETED = "%s deleted"
-    STR_RENAMED = "Renamed %s to %s"
+    STR_DELETED = "%s deleted."
+    STR_RENAMED = "Renamed %s to %s."
     
     STR_UPDATED = "\e[#{32}mSUCCESS! LetsCrate has been updated to the latest version!\e[0m" # this makes the text green.
     STR_REENTER_UPDATED = "Please re-enter your latest command to start using the new version."
@@ -159,6 +158,15 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_TIMEOUT = "The request timed out."
     STR_HTTPERROR = "Connection error. Code: %s"
+    
+    STR_INVALID_CONFIGURATION_KEY = "The configuration file has an invalid entry: \"%s\". It will be removed."
+    STR_DIFFERENT_CREDENTIALS = "The credentials you entered differ from the ones stored in the configuration file."
+    STR_UPDATE_CREDENTIALS_PROMPT = "Would you like to update the stored credentials? (y/n) "
+    STR_CREDENTIALS_UPDATED = "Credentials updated."
+    STR_CONFIG_UPDATE_ERROR = "Couldn't update configuration file."
+    STR_SAVE_CREDENTIALS_PROMPT = "Would you like to save your login data so it isn't needed next time? (y/n) "
+    STR_CREDENTIALS_SAVED = "Saved credentials at %s."
+    STR_COULDNT_CREATE_CONFIG_FILE = "Couldn't create configuration file."
 end
 
 module IntegrityChecks
@@ -244,16 +252,17 @@ class App
     
     def processArguments
         
-        @options = OpenStruct.new    # all the arguments will be parsed into this openstruct
+        @options = OpenStruct.new    # all the arguments will be parsed into this openstruct.
         @options.actionCounter = 0     # this should always end up as 1, or else there's a problem with the script arguments.
-        @options.action = nil    # this will be performed by the LetsCrate class
-        @options.verbose = false
-        @options.quiet = false    # if true, nothing will be printed to the screen. (aside from errors)
-        $width = detect_terminal_size   # determine terminal's width
-        @options.usesFilesIDs = false    # this triggers ID checks on the arguments if set to true
-        @options.usesCratesIDs = false   # same as above but with crates
-        @options.regex = false    # if set to true, all names are treated as regular expressions
+        @options.action = nil    # this will be performed by the LetsCrate class.
+        @options.verbose = false  # this activates the "info" method, and will print more data.
+        @options.quiet = false    # if true, nothing will be printed to the screen. (aside from errors).
+        $width = detect_terminal_size   # determine terminal's width.
+        @options.usesFilesIDs = false    # this triggers ID checks on the arguments if set to true.
+        @options.usesCratesIDs = false   # same as above but with crates.
+        @options.regex = false    # if set to true, all names are treated as regular expressions.
         @options.printIDs = false  # if true, all output will have IDs instead of names.
+        @didReceiveLoginFromTerminal = false    # this checs if the login data was passed with the -l flag.
         
         opts = OptionParser.new
         
@@ -264,13 +273,13 @@ class App
         
         opts.on( '-l', '--login [username:password]', 'Login with this username and password' ) { |login|
             
+            @didReceiveLoginFromTerminal = true
+            
             credentials = login.split(/:/)   # makes a 2-item array from the input
             
             if credentials.count == 2   # this array musn't have more than 2 items because it's username + password.
                 @options.username = credentials[0]
                 @options.password = credentials[1]
-                @options.login = 1
-                info "Logging in with username: #{credentials[0]}and password:#{credentials[1]}."
             else
                 printError(STR_CREDENTIALS_ERROR, login.to_s)
                 exit 1
@@ -397,6 +406,80 @@ class App
         
         opts.parse!(@arguments)
         
+        # This manages the configuration file.
+        
+        if @didReceiveLoginFromTerminal            # Save credentials if they were input to the terminal            
+            begin
+                config = File.open(File.expand_path(ConfigFile), "r").readlines
+                for line in config
+                    data = line.split("=")
+                    case data[0]
+                        when "USERNAME"
+                            user = data[1].chomp # chomp removes the newline from the string
+                        when "PASSWORD"
+                            pass = data[1].chomp # chomp removes the newline from the string
+                        else
+                            printWarning(STR_INVALID_CONFIGURATION_KEY % data[0])
+                    end
+                end
+                
+                if (user != @options.username || pass != @options.password)
+                    
+                    puts STR_DIFFERENT_CREDENTIALS
+                    
+                    printf STR_UPDATE_CREDENTIALS_PROMPT
+                    answer = gets
+                    
+                    if answer.downcase == "y\n" # The \n is needed because there's a newline at the end.
+                        begin
+                            File.delete(File.expand_path(ConfigFile))
+                            config = File.new(File.expand_path(ConfigFile), "w")
+                            config.puts "USERNAME=#{@options.username}"
+                            config.puts "PASSWORD=#{@options.password}"
+                            config.close
+                            puts STR_CREDENTIALS_UPDATED
+                        rescue
+                            printError(STR_CONFIG_UPDATE_ERROR, nil)
+                        end
+                    end
+                end
+            rescue  # the file doesn't exist, so it'll be created.
+                printf STR_SAVE_CREDENTIALS_PROMPT
+                answer = gets
+                    
+                if answer.downcase == "y\n" # The \n is needed because there's a newline at the end.
+                    begin
+                        Dir.mkdir(File.expand_path("~/.config/letscrate")) unless File.exists?(File.expand_path("~/.config/letscrate"))
+                        config = File.new(File.expand_path(ConfigFile), "w")
+                        config.puts "USERNAME=#{@options.username}"
+                        config.puts "PASSWORD=#{@options.password}"
+                        config.close
+                        puts STR_CREDENTIALS_SAVED % ConfigFile
+                    rescue
+                        printError(STR_COULDNT_CREATE_CONFIG_FILE, nil)
+                    end
+                end
+            end
+        else                                      # Check config file for credentials
+            begin
+                config = File.open(File.expand_path(ConfigFile), "r").readlines
+                for line in config
+                    data = line.split("=")
+                    case data[0]
+                        when "USERNAME"
+                            @options.username = data[1].chomp # chomp removes the newline from the string
+                        when "PASSWORD"
+                            @options.password = data[1].chomp # chomp removes the newline from the string
+                        else
+                            printWarning(STR_INVALID_CONFIGURATION_KEY % data[0])
+                    end
+                end
+                info "Got credentials from configuration file."
+            rescue
+                info "The configuration file doesn't exist."
+            end
+        end
+        
         # Errors:
         
         if @options.actionCounter > 1
@@ -406,7 +489,7 @@ class App
         end
         
         if (@options.username == nil || @options.password == nil) && @options.actionCounter != 0
-            printError(STR_ACCOUNT_NEEDED, "NoLoginError")
+            printError(STR_ACCOUNT_NEEDED, nil)
             $stderr.puts STR_LOGIN_WITH_L_SWITCH
             exit 1
         end
@@ -415,6 +498,10 @@ class App
             puts opts
             exit 0
         end
+    end
+    
+    def parseConfigFile
+        
     end
     
     def latestversion?
