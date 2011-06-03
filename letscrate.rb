@@ -80,7 +80,7 @@ module Output
     end
     
     def printCrate(name, short_code, id)
-        data = @options.printIDs ? "  URL: http://lts.cr/#{short_code}  ID: #{id}" : "  URL: http://lts.cr/#{short_code}"
+        data = "  URL: http://lts.cr/#{short_code}"+(@options.printIDs ? "  ID: #{id}" : "") # Appends the ID# if it's turned on in the settings.
         name = truncateName(name, $width-data.length) if name.length > ($width-data.length)
         if $width.nil?
             echo "* #{name}\t\t#{data}"
@@ -90,7 +90,7 @@ module Output
     end
     
     def printFile(name, size, short_code, id)
-        data = @options.printIDs ? "  #{ByteCount(size)}  URL: http://lts.cr/#{short_code}  ID: #{id}" : "  #{ByteCount(size)}  URL: http://lts.cr/#{short_code}"
+        data = "  #{ByteCount(size)}  URL: http://lts.cr/#{short_code}"+(@options.printIDs ? "  ID: #{id}" : "") # Appends the ID# if it's turned on in the settings.
         name = truncateName(name, ($width-data.length)-2) if name.length > ($width-data.length)-2
         if $width.nil?
             echo "* #{name}\t\t#{data}"
@@ -159,7 +159,7 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_TIMEOUT = "The request timed out."
     STR_HTTPERROR = "Connection error. Code: %s"
     
-    STR_INVALID_CONFIGURATION_KEY = "The configuration file has an invalid entry: \"%s\". It will be removed."
+    STR_INVALID_CONFIGURATION_KEY = "The configuration file has an invalid entry: \"%s\"."
     STR_DIFFERENT_CREDENTIALS = "The credentials you entered differ from the ones stored in the configuration file."
     STR_UPDATE_CREDENTIALS_PROMPT = "Would you like to update the stored credentials? (y/n) "
     STR_CREDENTIALS_UPDATED = "Credentials updated."
