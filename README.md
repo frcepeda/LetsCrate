@@ -1,10 +1,3 @@
-**Whoops, Let's Crate seems to be acting up a bit. I'm getting 502 errors whenever I try
-to connect with their [API](http://letscrate.com/api). Can someone confirm this for me?
-Authentication seems to pass through, but I get the error afterwards.**
-
-**To check if it works for you, use the -t option like this: `letscrate.rb -l username:password -t`. 
-It'll tell you if something's wrong.**
-
 LetsCrate
 =========
 
@@ -18,13 +11,14 @@ Quick start manual
 To use this program, you need to create an account at [Let's Crate](http://letscrate.com) and
 to install Typhoeus. You can do that with `gem install typhoeus`.
 
-**Every command needs the "-l" switch**, with the username and password separated by a
-colon.
+The first time you run it, you have to use the "-l" switch with your login information.
+It will then ask you if you want to save the credentials at ~/.config/letscrate/config so you
+don't need to keep typing them every time you use the program. 
 
 Example: 
 
-    -l username:password  
-    -l "username:password"
+    letscrate.rb -l username:password  
+    letscrate.rb -l "username:password"
     
 After that, you can select an action from the list below and use the command normally.
 
@@ -73,14 +67,6 @@ Usage
 Tips
 ====
 
-Login information
------------------
-
-To avoid having to type your credentials every time you want to run this command, make an alias
-in your .bashrc file with something like this:
-
-`alias letscrate = "/path/to/letscrate.rb -l 'username:password'"`
-
 IDs
 ---
 
@@ -106,10 +92,10 @@ String Handling
 You can type only a fragment of a crate or file's name if you know it's unique. Even if you
 don't specify the --regexp option, the program internally uses *case insensitive* regular
 expressions. For example, you can type only "yell" if one of your crates/files is called
-"Yellow.zip" and you know none of the other ones have that exact string in them.
+"Yellow.zip" and you know none of your other files have that exact string in them.
 
 In the off chance that two names collide (e.g. "apple" and "apples with pears"), you can add
-a '$' to the end of the shorter one ("apple$").
+a '$' to the end of the shorter one (e.g. "apple$").
 
 What is a regular expression?
 -------------------------------
@@ -120,7 +106,7 @@ You can read about
 TO DO
 =====
 
-* Use a configuration file to avoid typing the login credentials each time the command is run.
+* Make this a Ruby Gem.
 
 Bugs
 ====
