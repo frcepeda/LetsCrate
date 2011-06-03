@@ -1295,7 +1295,7 @@ class LetsCrate
         for crate in allCrates
             if crate['files']      # test if crate is empty
                 for file in crate['files']
-                    return "#{file['short_code']}" if file['id'] == id.to_i
+                    return file['short_code'].to_s if file['id'] == id.to_i
                 end
             end
         end
