@@ -269,7 +269,7 @@ class App
         opts.banner = STR_BANNER
         
         opts.separator ""
-        opts.separator "Mandatory arguments:"
+        opts.separator "Login:"
         
         opts.on( '-l', '--login [username:password]', 'Login with this username and password' ) { |login|
             
@@ -362,7 +362,7 @@ class App
         opts.separator ""
         opts.separator "Misc. options:"
         
-        opts.on(       '--downloadall', 'Downloads everything in your Let\'s Crate account.' ) {
+        opts.on(       '--downloadall', 'Downloads everything in your account.' ) {
             @options.action = :downloadAll
             @options.actionCounter += 1
         }
@@ -498,10 +498,6 @@ class App
             puts opts
             exit 0
         end
-    end
-    
-    def parseConfigFile
-        
     end
     
     def latestversion?
