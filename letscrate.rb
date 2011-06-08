@@ -502,7 +502,7 @@ class App
     
     def latestversion?
         info "Checking for new versions."
-        response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/.current")
+        response = Typhoeus::Request.get("https://raw.github.com/frcepeda/LetsCrate/master/.current")
         
         if requestSuccess?(response)
             data = response.body.split
@@ -532,6 +532,7 @@ class App
             return true
         else
             printWarning(STR_COULDNT_CHECK_VERSION)
+            return true
         end
     end
     
@@ -545,7 +546,7 @@ class App
     end
     
     def update!
-        response = Typhoeus::Request.get("https://github.com/frcepeda/LetsCrate/raw/master/letscrate.rb")
+        response = Typhoeus::Request.get("https://raw.github.com/frcepeda/LetsCrate/master/letscrate.rb")
         if requestSuccess?(response)
             file = File.new("#{__FILE__}", "w+")
             file.write(response.body)
@@ -1283,8 +1284,24 @@ class LetsCrate
         info "Got short code: #{shortURL}"
         response = Typhoeus::Request.get("http://letscrate.com/#{shortURL}")  # Contacts the server to "download", and gets instead a 302 HTTP code with a redirection URL.
         longURL = response.headers[/(Location: )(\S*)/, 2]  # Regex that searches for "Location: URL" and returns only the URL. Magic.
-        info "Got long URL: #{longURL}"
-        return longURL
+        
+        if requestSuccess?(response)
+            unless longURL.nil?    # woot! it isn't password protected!
+                info "Got long URL: #{longURL}"
+                return longURL
+            else
+                # TO DO: some crap to ask for password and store it.
+                
+                # check if I got to the password prompt page.
+                # check if the password is stored.
+                # if not, ask for the password.
+                # check if it works.
+                # prompt to store it.
+                # tada, return long URL.
+            end
+        else
+            return nil
+        end
     end
     
     def getFileShortCode(id)
