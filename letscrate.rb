@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "v1.10"
+VERSION = "v1.10.1"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 ConfigFile = "~/.config/letscrate/config"
