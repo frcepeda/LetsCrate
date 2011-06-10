@@ -39,6 +39,8 @@ ConfigFile = "~/.config/letscrate/config"
 
 $debug = false
 
+
+
 # here start the modules
 
 module Colors      # this allows using colors with ANSI escape codes
@@ -769,12 +771,13 @@ class LetsCrate
                 printWarning("\"#{name}\" already exists. Skipping.") # whoops, the file already exists in the folder.
             else
                 info "Downloading #{longURL}."
-                file = File.new(dir.nil? ? "#{name}" : "#{dir[0]}#{name}", "w")
                 response = Typhoeus::Request.get("#{longURL}")
                 
                 if response.success?
                     info "Successfuly downloaded file."
+                    file = File.new(dir.nil? ? "#{name}" : "#{dir[0]}#{name}", "w")
                     file.write(response.body)
+                    file.close
                     return name # return the new file's name
                 elsif response.timed_out?
                     printError("The request timed out.", "TimeOut")
@@ -787,7 +790,6 @@ class LetsCrate
                     # Received a non-successful http response.
                     printError("HTTP Error code: "+response.code.to_s, "HTTPError")
                 end
-                file.close
                 return nil
             end
             return nil
@@ -1287,26 +1289,21 @@ class LetsCrate
     def getFileLongURL(id)
         info "Getting long URL for file ID: #{id}"
         shortURL = getFileShortCode(id)
-        info "Got short code: #{shortURL}"
         response = Typhoeus::Request.get("http://letscrate.com/#{shortURL}")  # Contacts the server to "download", and gets instead a 302 HTTP code with a redirection URL.
         longURL = response.headers[/(Location: )(\S*)/, 2]  # Regex that searches for "Location: URL" and returns only the URL. Magic.
         
-        if requestSuccess?(response)
-            unless longURL.nil?    # woot! it isn't password protected!
-                info "Got long URL: #{longURL}"
-                return longURL
-            else
-                # TO DO: some crap to ask for password and store it.
-                
-                # check if I got to the password prompt page.
-                # check if the password is stored.
-                # if not, ask for the password.
-                # check if it works.
-                # prompt to store it.
-                # tada, return long URL.
-            end
+        unless longURL.nil?    # woot! it isn't password protected!
+            info "Got long URL: #{longURL}"
+            return longURL
         else
-            return nil
+            # TO DO: some crap to ask for password and store it.
+            
+            # check if I got to the password prompt page.
+            # check if the password is stored.
+            # if not, ask for the password.
+            # check if it works.
+            # prompt to store it.
+            # tada, return long URL.
         end
     end
     
@@ -1318,7 +1315,10 @@ class LetsCrate
         for crate in allCrates
             if crate['files']      # test if crate is empty
                 for file in crate['files']
-                    return file['short_code'].to_s if file['id'] == id.to_i
+                    if file['id'] == id.to_i
+                        info "Got short code: #{shortURL}"
+                        return file['short_code'].to_s
+                    end
                 end
             end
         end
@@ -1390,6 +1390,11 @@ class LetsCrate
 end
 
 # Create and run the application
-app = App.new(ARGV)
-app.run
-exit 0
+begin
+    app = App.new(ARGV)
+    app.run
+    exit 0
+rescue Interrupt => e    # this handles interrupts so they don't print a crapload of stuff
+    puts ""
+    exit 1
+end
