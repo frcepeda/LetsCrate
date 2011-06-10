@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "v1.10.1"
+VERSION = "v1.10.2"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 ConfigFile = "~/.config/letscrate/config"
@@ -404,7 +404,13 @@ class App
             $debug = true
         }
         
-        opts.parse!(@arguments)
+        begin
+            opts.parse!(@arguments)
+        rescue OptionParser::ParseError => e  # This handles invalid command line arguments
+            printError(e.message, nil)
+            puts opts
+            exit 1
+        end
         
         # This manages the configuration file.
         
@@ -495,7 +501,7 @@ class App
         end
         
         if @options.actionCounter == 0      # nothing was selected
-            puts opts
+            puts opts   # Display the usage message
             exit 0
         end
     end
