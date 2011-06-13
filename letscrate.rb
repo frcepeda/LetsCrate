@@ -32,14 +32,14 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "v1.10.2"
+VERSION = "v1.10.3"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 ConfigFile = "~/.config/letscrate/config"
 
 $debug = false
 
-
+trap("SIGWINCH") { $width = `tput cols`.to_i } # check if terminal size changed
 
 # here start the modules
 
@@ -61,7 +61,7 @@ end
 module Output
     
     def detect_terminal_size
-        return `tput cols`.to_i    # returns terminal width in characters
+        $width =  `tput cols`.to_i    # returns terminal width in characters
     end
     
     def printError(message, argument)
@@ -259,7 +259,7 @@ class App
         @options.action = nil    # this will be performed by the LetsCrate class.
         @options.verbose = false  # this activates the "info" method, and will print more data.
         @options.quiet = false    # if true, nothing will be printed to the screen. (aside from errors).
-        $width = detect_terminal_size   # determine terminal's width.
+        detect_terminal_size   # determine terminal's width.
         @options.usesFilesIDs = false    # this triggers ID checks on the arguments if set to true.
         @options.usesCratesIDs = false   # same as above but with crates.
         @options.regex = false    # if set to true, all names are treated as regular expressions.
@@ -1045,7 +1045,6 @@ class LetsCrate
         if array.empty?
             printError(STR_NO_FILES_FOUND, @arguments[@argCounter])
         else
-            echo "\n"
             echo green(@arguments[@argCounter]+":")  # print header for matched files
             for file in array
                 printFile(file['name'], file['size'], file['short_code'], file['id'])
@@ -1057,7 +1056,6 @@ class LetsCrate
         if array.empty?
             printError(STR_NO_CRATES_FOUND, @arguments[@argCounter])
         else
-            echo "\n"
             echo green(@arguments[@argCounter]+":")   # print header for matched files
             for crate in array
                 printCrate(crate['name'], crate['short_code'], crate['id'])
