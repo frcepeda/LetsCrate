@@ -46,7 +46,11 @@ trap("SIGWINCH") { $width = `tput cols`.to_i } # check if terminal size changed
 module Colors      # this allows using colors with ANSI escape codes
     
     def colorize(text, color_code)
-        "\e[#{color_code}m#{text}\e[0m"
+        if STDOUT.tty?
+            return "\e[#{color_code}m#{text}\e[0m"
+        else
+            return text
+        end
     end
     
     def red(text); colorize(text, 31); end
