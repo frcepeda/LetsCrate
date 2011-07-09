@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "v1.10.3"
+VERSION = "v1.10.4"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 ConfigFile = "~/.config/letscrate/config"
@@ -137,6 +137,7 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_ACCOUNT_NEEDED = "You need to have an account to use the Let's Crate API."
     STR_LOGIN_WITH_L_SWITCH = "If you don't have one yet, you can create an account at letscrate.com.\nUse the \"-l\" switch to specify your login credentials."
+    STR_NO_LOGIN = "You must supply an username and password with the -l option."
     STR_CREDENTIALS_ERROR = "Credentials invalid, please input them in the format \"username:password\""
     
     STR_VALID_CREDENTIALS = "The credentials are valid."
@@ -278,6 +279,10 @@ class App
         opts.separator "Login:"
         
         opts.on( '-l', '--login [username:password]', 'Login with this username and password' ) { |login|
+            if login.nil?
+                printError(STR_NO_LOGIN, nil)
+                exit 1
+            end
             
             @didReceiveLoginFromTerminal = true
             
