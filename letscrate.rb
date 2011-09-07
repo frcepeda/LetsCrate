@@ -607,22 +607,16 @@ class LetsCrate
     def run
         
         if !(@options.crateID.nil?)    #  Check if crateID is used in this process.
-            if IDvalid?(@options.crateID)
-                info "Crate ID valid."
-                # YAY! Do nothing.
-            else
-                info "Crate ID invalid. Mapping name to crate."
+            unless IDvalid?(@options.crateID)
                 @options.crateID = getIDForCrate(@options.crateID)
             end
         end
         
         if @options.usesCratesIDs
-            info "This command uses Crate IDs."
             @arguments = mapCrateIDs(@arguments)
         end
         
         if @options.usesFilesIDs
-            info "This command uses File IDs."
             @arguments = mapFileIDs(@arguments) 
         end
         
@@ -1323,7 +1317,7 @@ class LetsCrate
             if crate['files']      # test if crate is empty
                 for file in crate['files']
                     if file['id'] == id.to_i
-                        info "Got short code: #{shortURL}"
+                        info "Got short code: #{file['short_code']}"
                         return file['short_code'].to_s
                     end
                 end
@@ -1362,7 +1356,7 @@ class LetsCrate
         if @options.regex
             info "Mapping names to Crate IDs. Regexp is on."
             array = getIDsForCrates!(array)
-            else
+        else
             info "Mapping names to Crate IDs."
             array = getIDsForCrates(array)
         end
@@ -1374,7 +1368,7 @@ class LetsCrate
         if @options.regex
             info "Mapping names to file IDs. Regexp is on."
             array = getIDsForFiles!(array)
-            else
+        else
             info "Mapping names to file IDs."
             array = getIDsForFiles(array)
         end
