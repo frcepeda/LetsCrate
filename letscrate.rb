@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VION = "v1.10.5"
+LETSCRATEVERSION = "v1.10.5"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 ConfigFile = "~/.config/letscrate/config"
@@ -124,7 +124,7 @@ module Strings   # this module contains almost all the strings used in the progr
     STR_BANNER = "Usage: #{File.basename(__FILE__)} <-l username:password> [options] file1 file2 ...\n"+ 
                  "   or: #{File.basename(__FILE__)} <-l username:password> [options] name1 name2 ..."
     
-    STR_VERSION = "LetsCrate v#{VERSION} (API Version #{APIVERSION}) by Freddy Roman <frcepeda@gmail.com>"
+    STR_VERSION = "LetsCrate v#{LETSCRATEVERSION} (API Version #{APIVERSION}) by Freddy Roman <frcepeda@gmail.com>"
     
     STR_TOO_MANY_ACTIONS = "More than one action was selected. Please select only one action."
     
@@ -524,7 +524,7 @@ class App
         if requestSuccess?(response)
             data = response.body.split
             
-            local = VERSION.split(".").join[1..-1].to_i
+            local = LETSCRATEVERSION.split(".").join[1..-1].to_i
             current = data[0].to_s.split(".").join[1..-1].to_i
             
             while Math.log(local).floor + 1 < Math.log(current).floor + 1 # performs some padding so numbers have the same amount of digits
