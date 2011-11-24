@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-VERSION = "v1.10.4"
+VION = "v1.10.5"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 ConfigFile = "~/.config/letscrate/config"
@@ -639,7 +639,7 @@ class LetsCrate
         info "Testing Credentials. Username: #{@options.username}, Password: #{@options.password}"
         response = Typhoeus::Request.get("#{BaseURL}users/authenticate.json",
                                           :username => @options.username,
-                                          :password => @options.password,
+                                          :password => @options.password
                                           )
         
         if response.success? # This checks if the request was successful or prints error messages if it went wrong.
@@ -665,7 +665,7 @@ class LetsCrate
                                             :crate_id => @options.crateID
                                           },
                                           :username => @options.username,
-                                          :password => @options.password,
+                                          :password => @options.password
                                           )
             
             if response.success? # This checks if the request was successful or prints error messages if it went wrong.
@@ -694,7 +694,7 @@ class LetsCrate
             info "Deleting file #{fileID}."
             response = Typhoeus::Request.post("#{BaseURL}files/destroy/#{fileID}.json",
                                                 :username => @options.username,
-                                                :password => @options.password,
+                                                :password => @options.password
                                                 )
             
             if response.success? # This checks if the request was successful or prints error messages if it went wrong.
@@ -719,7 +719,7 @@ class LetsCrate
         info "Downloading file list."
         response = Typhoeus::Request.get("#{BaseURL}files/list.json",
                                                  :username => @options.username,
-                                                 :password => @options.password,
+                                                 :password => @options.password
                                                  )
         
         if response.success? # This checks if the request was successful or prints error messages if it went wrong.
@@ -743,7 +743,7 @@ class LetsCrate
             info "Getting file #{fileID} info."
             response = Typhoeus::Request.get("#{BaseURL}files/show/#{fileID}.json",
                                                  :username => @options.username,
-                                                 :password => @options.password,
+                                                 :password => @options.password
                                                  )
             
             if response.success? # This checks if the request was successful or prints error messages if it went wrong.
@@ -836,7 +836,7 @@ class LetsCrate
                                                  :name => name
                                                  },
                                                  :username => @options.username,
-                                                 :password => @options.password,
+                                                 :password => @options.password
                                                  )
        
         if response.success? # This checks if the request was successful or prints error messages if it went wrong.
@@ -859,7 +859,7 @@ class LetsCrate
             info "Downloading crate list."
             response = Typhoeus::Request.get("#{BaseURL}crates/list.json",
                                              :username => @options.username,
-                                             :password => @options.password,
+                                             :password => @options.password
                                              )
             info "Listing all crates."
             
@@ -923,7 +923,7 @@ class LetsCrate
                                                  :name => name
                                                  },
                                                  :username => @options.username,
-                                                 :password => @options.password,
+                                                 :password => @options.password
                                                  )
         
             if response.success? # This checks if the request was successful or prints error messages if it went wrong.
@@ -952,7 +952,7 @@ class LetsCrate
             info "Deleting crate #{crateID}."
             response = Typhoeus::Request.post("#{BaseURL}crates/destroy/#{crateID}.json",
                                                  :username => @options.username,
-                                                 :password => @options.password,
+                                                 :password => @options.password
                                                  )
       
             if response.success? # This checks if the request was successful or prints error messages if it went wrong.
