@@ -32,7 +32,7 @@ require 'ostruct'
 require 'typhoeus'
 require 'json'
 
-LETSCRATEVERSION = "v1.10.5"
+LETSCRATEVERSION = "v1.11"
 APIVERSION = "1"
 BaseURL = "https://api.letscrate.com/1/"
 ConfigFile = "~/.config/letscrate/config"
@@ -128,8 +128,8 @@ module Strings   # this module contains almost all the strings used in the progr
     
     STR_TOO_MANY_ACTIONS = "More than one action was selected. Please select only one action."
     
-    STR_FILEID_ERROR = "A file ID is a 5 digit number. Use -a to list your files's IDs."
-    STR_CRATEID_ERROR = "A crate ID is a 5 digit number. Use -A to list your crates's IDs."
+    STR_FILEID_ERROR = "A file ID is a 5+ digit number. Use -a to list your files's IDs."
+    STR_CRATEID_ERROR = "A crate ID is a 5+ digit number. Use -A to list your crates's IDs."
     
     STR_COULDNT_GET_FILES = "Couldn't download file list. Exiting."
     
@@ -183,7 +183,7 @@ module IntegrityChecks
     def IDvalid?(id)
         info "Testing ID: #{id}"
         test = id.to_s
-        if test[/^\d{5}$/].nil?  # regex checks for 5 continuous digits surrounded by start and end of string.
+        if test[/^\d*$/].nil?  # regex checks for continuous digits surrounded by start and end of string.
             info "#{id} isn't a valid ID."
             return false
         else
