@@ -70,7 +70,7 @@ Tips
 IDs
 ---
 
-An ID is a 5 digit identifier used internally by Let's Crate. 
+An ID is a 5+ digit identifier used internally by Let's Crate. 
 To know the ID of your files, use the "--ids" option to list them with their respective
 URLs and IDs when executing any command.
 
