@@ -9,7 +9,7 @@ Quick start manual
 ==================
 
 To use this program, you need to create an account at [Let's Crate](http://letscrate.com) and
-to install Typhoeus. You can do that with `gem install typhoeus`.
+to install Typhoeus, as well as JSON. You can do that with `gem install typhoeus; gem install json` in your command line.
 
 The first time you run it, you have to use the "-l" switch with your login information.
 It will then ask you if you want to save the credentials at ~/.config/letscrate/config so you
