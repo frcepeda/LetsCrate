@@ -3,7 +3,7 @@ LetsCrate
 
 This is an unofficial command line client for [Let's Crate](http://letscrate.com) written in Ruby.
 
-Please let me know what you think! You can reach me at <frcepeda@gmail.com>.
+Please let me know what you think! You can reach me at <freddy@frcepeda.com>.
 
 Quick start manual
 ==================
