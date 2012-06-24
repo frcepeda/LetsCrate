@@ -107,6 +107,7 @@ TO DO
 =====
 
 * Make this a Ruby Gem.
+* Do not store login info in plaintext.
 
 Bugs
 ====
