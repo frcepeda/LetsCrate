@@ -1,6 +1,4 @@
-=== Let's Crate's API hasn't been working for months now. :(
-They haven't replied to my emails about it, so I have no idea
-whether they intend to bring it back. ===
+# Let's Crate's API hasn't been working for months now. :( They haven't replied to my emails about it, so I have no idea whether they intend to bring it back. 
 
 LetsCrate
 =========
