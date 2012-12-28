@@ -1,17 +1,19 @@
-# Let's Crate's API hasn't been working for months now. :( They haven't replied to my emails about it, so I have no idea whether they intend to bring it back. 
+# Let's Crate's API hasn't been working for months now. :( They haven't replied to my emails about it, so I 
+have no idea whether they intend to bring it back. 
 
 LetsCrate
 =========
 
-This is an unofficial command line client for [Let's Crate](http://letscrate.com) written in Ruby.
+This is an unofficial command line client for [Let's Crate](http://letscrate.com).
 
-Please let me know what you think! You can reach me at <freddy@frcepeda.com>.
+Please let me know what you think! You can reach me at <me@freddy.mx>.
 
 Quick start manual
 ==================
 
 To use this program, you need to create an account at [Let's Crate](http://letscrate.com) and
-to install Typhoeus, as well as JSON. You can do that with `gem install typhoeus; gem install json` in your command line.
+to install Typhoeus, as well as JSON. You can do that with `gem install typhoeus; gem install json` in your 
+command line.
 
 The first time you run it, you have to use the "-l" switch with your login information.
 It will then ask you if you want to save the credentials at ~/.config/letscrate/config so you
